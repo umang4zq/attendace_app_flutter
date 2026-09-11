@@ -78,7 +78,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               ),
               const SizedBox(height: 24),
               const Text(
-                'Attendance Pro',
+                'Attendance App',
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.bold,

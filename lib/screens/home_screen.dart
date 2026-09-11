@@ -257,11 +257,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     return Scaffold(
       appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Image.asset('assets/images/logo2.png'),
-        ),
-        title: InkWell(
+        leadingWidth: 150,
+        leading: InkWell(
           onTap: _pickDate,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
@@ -283,6 +280,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
         ),
+        centerTitle: true,
+        title: Image.asset('assets/images/logo2.png', height: 50),
         actions: [
           IconButton(
             icon: _isSaving
@@ -311,58 +310,63 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   Expanded(
                     flex: 3,
                     child: Container(
+                      height: 46,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(23),
                         border: Border.all(color: AppColors.cardBorder),
                       ),
+                      alignment: Alignment.center,
                       child: TextField(
                         controller: _searchController,
                         onChanged: (val) => _filterStudents(),
+                        textAlignVertical: TextAlignVertical.center,
                         decoration: const InputDecoration(
+                          isDense: true,
                           hintText: 'Search student...',
                           hintStyle: TextStyle(fontSize: 14, color: AppColors.textMuted),
                           prefixIcon: Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                          prefixIconConstraints: BoxConstraints(minWidth: 46, minHeight: 46),
                           border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: EdgeInsets.only(right: 16),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
 
                   // Stream Dropdown
-                  Expanded(
-                    flex: 2,
+                  Expanded (
+                    flex: 1,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      height: 46,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(23),
                         border: Border.all(color: AppColors.cardBorder),
                       ),
+                      alignment: Alignment.center,
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedStream,
                           isExpanded: true,
                           icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
-                          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
                           items: [
-                            const DropdownMenuItem(value: 'All', child: Text('All')),
-                            ..._streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))),
-                          ],
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _selectedStream = val);
-                              _filterStudents();
-                            }
-                          },
-                        ),
+                          const DropdownMenuItem(value: 'All', child: Text('All')),
+                          ..._streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() => _selectedStream = val);
+                            _filterStudents();
+                          }
+                        },
                       ),
                     ),
                   ),
+                  )
                 ],
               ),
             ),
