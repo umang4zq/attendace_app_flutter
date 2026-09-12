@@ -23,6 +23,8 @@ class AttendanceApp extends StatelessWidget {
       title: 'Attendance Pro',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system, // Follows system setting for dark/light mode
       home: const SplashScreen(),
     );
   }

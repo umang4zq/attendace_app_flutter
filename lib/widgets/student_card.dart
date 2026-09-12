@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/student_model.dart';
+import '../models/stream_model.dart';
 import '../theme/app_colors.dart';
 import '../screens/monthly_calendar_screen.dart';
 
-class StudentCard extends StatelessWidget {
+class StudentCard extends StatefulWidget {
   final StudentModel student;
   final VoidCallback onToggleStatus;
   final VoidCallback onMarkPresent;
@@ -22,37 +24,44 @@ class StudentCard extends StatelessWidget {
   });
 
   @override
+  State<StudentCard> createState() => _StudentCardState();
+}
+
+class _StudentCardState extends State<StudentCard> {
+  bool _isPressed = false;
+
+  @override
   Widget build(BuildContext context) {
     Color cardColor;
     Color textColor;
     Color subTextColor;
 
-    if (student.selected) {
+    if (widget.student.selected) {
       // Holiday state
       cardColor = AppColors.holiday;
       textColor = Colors.white;
       subTextColor = Colors.white70;
-    } else if (student.isPresent) {
+    } else if (widget.student.isPresent) {
       // Present state
       cardColor = AppColors.present;
       textColor = Colors.white;
       subTextColor = Colors.white70;
-    } else if (student.isAbsent) {
+    } else if (widget.student.isAbsent) {
       // Absent state
       cardColor = AppColors.absent;
       textColor = Colors.white;
       subTextColor = Colors.white70;
     } else {
       // Default / unmarked state
-      cardColor = Colors.white;
-      textColor = AppColors.textPrimary;
-      subTextColor = AppColors.primary;
+      cardColor = Theme.of(context).cardColor;
+      textColor = Theme.of(context).textTheme.titleLarge?.color ?? AppColors.textPrimary;
+      subTextColor = Theme.of(context).colorScheme.primary;
     }
 
-    final isColored = student.selected || student.isPresent || student.isAbsent;
+    final isColored = widget.student.selected || widget.student.isPresent || widget.student.isAbsent;
 
     return Dismissible(
-      key: Key(student.docId.isNotEmpty ? student.docId : student.rollno),
+      key: Key(widget.student.docId.isNotEmpty ? widget.student.docId : widget.student.rollno),
       direction: DismissDirection.horizontal,
       background: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -75,14 +84,19 @@ class StudentCard extends StatelessWidget {
         child: const Icon(Icons.cancel, color: Colors.white, size: 32),
       ),
       confirmDismiss: (direction) async {
+        HapticFeedback.mediumImpact();
         if (direction == DismissDirection.startToEnd) {
-          onMarkPresent();
+          widget.onMarkPresent();
         } else if (direction == DismissDirection.endToStart) {
-          onMarkAbsent();
+          widget.onMarkAbsent();
         }
         return false; // Prevent the card from actually being removed from the UI list
       },
-      child: Container(
+      child: AnimatedScale(
+        scale: _isPressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOut,
+        child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color: cardColor,
@@ -98,11 +112,21 @@ class StudentCard extends StatelessWidget {
         ),
         child: Material(
           color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: onToggleStatus,
-            onLongPress: onEdit,
-            child: Padding(
+          child: GestureDetector(
+            onTapDown: (_) => setState(() => _isPressed = true),
+            onTapUp: (_) => setState(() => _isPressed = false),
+            onTapCancel: () => setState(() => _isPressed = false),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                widget.onToggleStatus();
+              },
+              onLongPress: () {
+                HapticFeedback.heavyImpact();
+                if (widget.onEdit != null) widget.onEdit!();
+              },
+              child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               child: Row(
                 children: [
@@ -112,7 +136,7 @@ class StudentCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          student.name,
+                          widget.student.name,
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
@@ -121,16 +145,16 @@ class StudentCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          student.rollno,
+                          widget.student.rollno,
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: isColored ? Colors.white : AppColors.textSecondary,
+                            color: isColored ? Colors.white : Theme.of(context).textTheme.bodySmall?.color,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          student.stream,
+                          widget.student.stream,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -152,17 +176,21 @@ class StudentCard extends StatelessWidget {
                           size: 28,
                         ),
                         onPressed: () {
+                          HapticFeedback.lightImpact();
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => MonthlyCalendarScreen(student: student),
+                              builder: (context) => MonthlyCalendarScreen(student: widget.student),
                             ),
                           );
                         },
                         tooltip: 'View Monthly Attendance',
                       ),
                       InkWell(
-                        onTap: onDelete,
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          widget.onDelete();
+                        },
                         borderRadius: BorderRadius.circular(6),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

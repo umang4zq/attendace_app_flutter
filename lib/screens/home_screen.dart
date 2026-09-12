@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/student_model.dart';
@@ -38,11 +39,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.initState();
     _fabController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 300),
     );
     _expandAnimation = CurvedAnimation(
       parent: _fabController,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOutBack, // Apple-style spring curve
     );
 
     _loadData();
@@ -256,7 +257,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final formattedDate = DateFormat('dd-MMM-yy').format(_selectedDate);
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+            child: Container(
+              color: Theme.of(context).scaffoldBackgroundColor.withAlpha(150),
+            ),
+          ),
+        ),
         leadingWidth: 150,
         leading: InkWell(
           onTap: _pickDate,
@@ -268,14 +278,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               children: [
                 const ImageIcon(AssetImage('assets/images/calendar_icon.png'), color: AppColors.primary, size: 22),
                 const SizedBox(width: 8),
-                Text(
-                  formattedDate,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                  Text(
+                    formattedDate,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.textPrimary,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -312,15 +322,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     child: Container(
                       height: 46,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
                         borderRadius: BorderRadius.circular(23),
-                        border: Border.all(color: AppColors.cardBorder),
+                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       ),
                       alignment: Alignment.center,
                       child: TextField(
                         controller: _searchController,
                         onChanged: (val) => _filterStudents(),
                         textAlignVertical: TextAlignVertical.center,
+                        style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
                         decoration: const InputDecoration(
                           isDense: true,
                           hintText: 'Search student...',
@@ -342,9 +353,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       height: 46,
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
                         borderRadius: BorderRadius.circular(23),
-                        border: Border.all(color: AppColors.cardBorder),
+                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       ),
                       alignment: Alignment.center,
                       child: DropdownButtonHideUnderline(
@@ -352,7 +363,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           value: _selectedStream,
                           isExpanded: true,
                           icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
-                          style: const TextStyle(fontSize: 14, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w500),
+                          dropdownColor: Theme.of(context).cardColor,
                           items: [
                           const DropdownMenuItem(value: 'All', child: Text('All')),
                           ..._streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))),
@@ -402,8 +414,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ),
                         )
                       : ListView.builder(
+                          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                           itemCount: _filteredStudents.length,
-                          padding: const EdgeInsets.only(bottom: 90),
+                          padding: EdgeInsets.only(
+                            top: MediaQuery.of(context).padding.top + kToolbarHeight + 16,
+                            bottom: 90,
+                          ),
                           itemBuilder: (context, index) {
                             final student = _filteredStudents[index];
                             return StudentCard(
@@ -441,13 +457,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
                     ],
                   ),
-                  child: const Text('Holiday', style: TextStyle(fontWeight: FontWeight.w600)),
+                  child: Text('Holiday', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
                 ),
                 const SizedBox(width: 8),
                 FloatingActionButton.small(
@@ -470,13 +486,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
                     ],
                   ),
-                  child: const Text('Add', style: TextStyle(fontWeight: FontWeight.w600)),
+                  child: Text('Add', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
                 ),
                 const SizedBox(width: 8),
                 FloatingActionButton.small(
