@@ -309,4 +309,73 @@ class FirestoreService {
 
     return reportRows;
   }
+
+  // --- Teacher Permission Operations (Super Admin) ---
+
+  /// Get all teacher documents.
+  Future<List<Map<String, dynamic>>> getAllTeachers() async {
+    final snapshot = await _firestore.collection('teachers').get();
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['uid'] = doc.id;
+      return data;
+    }).toList();
+  }
+
+  /// Get a single teacher's permissions by UID.
+  Future<Map<String, dynamic>?> getTeacherPermissions(String uid) async {
+    final doc = await _firestore.collection('teachers').doc(uid).get();
+    if (!doc.exists) return null;
+    final data = doc.data()!;
+    data['uid'] = doc.id;
+    return data;
+  }
+
+  /// Create or update teacher permissions.
+  Future<void> setTeacherPermissions(String uid, {bool? canAddManually, bool? canImportCsv}) async {
+    final Map<String, dynamic> updates = {};
+    if (canAddManually != null) updates['canAddManually'] = canAddManually;
+    if (canImportCsv != null) updates['canImportCsv'] = canImportCsv;
+    if (updates.isEmpty) return;
+
+    await _firestore.collection('teachers').doc(uid).update(updates);
+  }
+
+  /// Delete a teacher's permission doc.
+  Future<void> deleteTeacherDoc(String uid) async {
+    await _firestore.collection('teachers').doc(uid).delete();
+  }
+
+  // --- Bulk Student Operations (CSV) ---
+
+  /// Add multiple students to a stream in a single batch.
+  Future<int> addStudentsBatch(String streamId, List<Map<String, String>> students) async {
+    final batch = _firestore.batch();
+    int count = 0;
+
+    for (var student in students) {
+      final name = (student['name'] ?? '').trim();
+      final rollno = (student['rollno'] ?? '').trim();
+      if (name.isEmpty) continue;
+
+      final docId = rollno.isNotEmpty ? rollno : name;
+      final ref = _firestore
+          .collection('streams')
+          .doc(streamId)
+          .collection('students')
+          .doc(docId);
+
+      batch.set(ref, {
+        'name': name,
+        'rollno': rollno,
+        'stream': streamId,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      count++;
+    }
+
+    if (count > 0) await batch.commit();
+    return count;
+  }
 }
+

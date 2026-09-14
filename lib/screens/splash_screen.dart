@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart';
 import 'login_screen.dart';
@@ -55,7 +56,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -64,34 +64,34 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             children: [
               Image.asset(
                 'assets/images/logo.png',
-                width: 140,
-                height: 140,
+                width: 140.w,
+                height: 140.h,
                 errorBuilder: (context, error, stackTrace) => Container(
-                  width: 120,
-                  height: 120,
+                  width: 120.w,
+                  height: 120.h,
                   decoration: BoxDecoration(
                     color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(28),
+                    borderRadius: BorderRadius.circular(28.r),
                   ),
-                  child: const Icon(Icons.fact_check_rounded, size: 64, color: Colors.white),
+                  child: Icon(Icons.fact_check_rounded, size: 64.sp, color: Colors.white),
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text(
+              SizedBox(height: 24.h),
+              Text(
                 'Attendance App',
                 style: TextStyle(
-                  fontSize: 26,
+                  fontSize: 26.sp,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8.h),
+              Text(
                 'Smart Student & Class Tracker',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
+                  fontSize: 14.sp,
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(153),
                   fontWeight: FontWeight.w500,
                 ),
               ),

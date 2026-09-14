@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../models/student_model.dart';
 import '../services/firestore_service.dart';
 import '../theme/app_colors.dart';
@@ -68,13 +69,12 @@ class _UpdateStudentScreenState extends State<UpdateStudentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Update Student Details'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.w),
           child: Form(
             key: _formKey,
             child: Column(
@@ -88,7 +88,7 @@ class _UpdateStudentScreenState extends State<UpdateStudentScreen> {
                   ),
                   validator: (val) => (val == null || val.trim().isEmpty) ? 'Enter name' : null,
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18.h),
                 TextFormField(
                   controller: _rollController,
                   decoration: const InputDecoration(
@@ -97,36 +97,36 @@ class _UpdateStudentScreenState extends State<UpdateStudentScreen> {
                   ),
                   validator: (val) => (val == null || val.trim().isEmpty) ? 'Enter roll number' : null,
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18.h),
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16.w),
                   decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.cardBorder),
+                    color: Theme.of(context).brightness == Brightness.dark ? AppColors.cardDark : AppColors.background,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.cardBorderDark : AppColors.cardBorder),
                   ),
                   child: Row(
                     children: [
                       const Icon(Icons.school_outlined, color: AppColors.textSecondary),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12.w),
                       Text(
                         'Stream: ${widget.student.stream}',
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32.h),
                 ElevatedButton(
                   onPressed: _isSaving ? null : _handleUpdate,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
                   ),
                   child: _isSaving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      ? SizedBox(
+                          width: 22.w,
+                          height: 22.h,
+                          child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
                       : const Text('UPDATE DETAILS'),
                 ),

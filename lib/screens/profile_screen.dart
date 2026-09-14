@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../main.dart';
 import '../models/stream_model.dart';
 import '../services/firestore_service.dart';
 import '../services/pdf_service.dart';
@@ -158,44 +160,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final fromMonthStr = DateFormat('yyyy-MM').format(_fromMonth);
     final toMonthStr = DateFormat('yyyy-MM').format(_toMonth);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+    final subTextColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
+    final cardBgColor = isDark ? AppColors.cardDark : Colors.white;
+    final borderColor = isDark ? AppColors.cardBorderDark : AppColors.cardBorder;
+    final headerBgColor = isDark ? AppColors.cardDark : AppColors.primaryLight;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Profile & Reports'),
+        actions: [
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: themeNotifier,
+            builder: (context, currentMode, _) {
+              final isDarkTheme = currentMode == ThemeMode.dark ||
+                  (currentMode == ThemeMode.system &&
+                      Theme.of(context).brightness == Brightness.dark);
+              return IconButton(
+                icon: Icon(isDarkTheme ? Icons.light_mode : Icons.dark_mode),
+                onPressed: () {
+                  themeNotifier.value = isDarkTheme ? ThemeMode.light : ThemeMode.dark;
+                },
+                tooltip: 'Toggle Theme',
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // User Account Header
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16.w),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(16),
+                  color: headerBgColor,
+                  borderRadius: BorderRadius.circular(16.r),
+                  border: isDark ? Border.all(color: borderColor) : null,
                 ),
                 child: Row(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 28,
                       backgroundColor: AppColors.primary,
-                      child: Icon(Icons.person, color: Colors.white, size: 32),
+                      child: Icon(Icons.person, color: Colors.white, size: 32.sp),
                     ),
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16.w),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Instructor Account',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: textColor),
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2.h),
                           Text(
                             user?.email ?? 'instructor@school.edu',
-                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                            style: TextStyle(fontSize: 13.sp, color: subTextColor),
                           ),
                         ],
                       ),
@@ -203,50 +230,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
 
               // Title Section
-              const Text(
+              Text(
                 'Export Attendance Report',
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 22.sp,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
                 ),
               ),
-              const SizedBox(height: 6),
-              const Text(
+              SizedBox(height: 6.h),
+              Text(
                 'Generate attendance PDF by selecting stream and month range',
-                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 14.sp, color: subTextColor),
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: 28.h),
 
               // Stream Selection
-              const Text(
+              Text(
                 'Select Stream',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: AppColors.primary),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               _isLoading
                   ? const CircularProgressIndicator()
                   : Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.cardBorder),
+                        color: cardBgColor,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: borderColor),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _streams.any((s) => s.name == _selectedStream) ? _selectedStream : null,
-                          hint: const Text('Select Stream'),
+                          hint: Text('Select Stream', style: TextStyle(color: subTextColor)),
                           isExpanded: true,
+                          dropdownColor: cardBgColor,
+                          style: TextStyle(color: textColor, fontSize: 16.sp),
                           items: _streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
                           onChanged: (val) => setState(() => _selectedStream = val),
                         ),
                       ),
                     ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
 
               // Date Range Selectors
               Row(
@@ -256,26 +285,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'From Month',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: AppColors.primary),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8.h),
                         InkWell(
                           onTap: () => _pickMonth(isFrom: true),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12.r),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.cardBorder),
+                              color: cardBgColor,
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(color: borderColor),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(fromMonthStr, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                                Text(fromMonthStr, style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
+                                Icon(Icons.arrow_drop_down, color: subTextColor),
                               ],
                             ),
                           ),
@@ -283,33 +312,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16.w),
 
                   // To Month
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'To Month',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold, color: AppColors.primary),
                         ),
-                        const SizedBox(height: 8),
+                        SizedBox(height: 8.h),
                         InkWell(
                           onTap: () => _pickMonth(isFrom: false),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12.r),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.cardBorder),
+                              color: cardBgColor,
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(color: borderColor),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(toMonthStr, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
+                                Text(toMonthStr, style: TextStyle(fontWeight: FontWeight.w600, color: textColor)),
+                                Icon(Icons.arrow_drop_down, color: subTextColor),
                               ],
                             ),
                           ),
@@ -319,26 +348,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 36),
+              SizedBox(height: 36.h),
 
               // Export Button
               ElevatedButton.icon(
                 onPressed: _isGeneratingPdf ? null : _exportPdf,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                 ),
                 icon: _isGeneratingPdf
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    ? SizedBox(
+                        width: 20.w,
+                        height: 20.h,
+                        child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                       )
                     : const Icon(Icons.picture_as_pdf_rounded),
-                label: const Text('Export PDF', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                label: Text('Export PDF', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               // Logout Button
               OutlinedButton(
@@ -346,10 +375,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.deleteRed,
                   side: const BorderSide(color: AppColors.deleteRed),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
                 ),
-                child: const Text('LOGOUT', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text('LOGOUT', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

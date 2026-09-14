@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../models/student_model.dart';
 import '../models/date_model.dart';
@@ -90,14 +91,14 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
     }
   }
 
-  Color _getTextColor(String status) {
+  Color _getTextColor(BuildContext context, String status) {
     switch (status.toLowerCase()) {
       case 'present':
       case 'absent':
       case 'holiday':
         return Colors.white;
       default:
-        return AppColors.textPrimary;
+        return Theme.of(context).textTheme.bodyLarge?.color ?? AppColors.textPrimary;
     }
   }
 
@@ -107,64 +108,62 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
     final firstDayOfWeek = DateTime(_selectedMonth.year, _selectedMonth.month, 1).weekday % 7;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Monthly Attendance'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Header: Student Name & Roll Number
               Text(
                 widget.student.name,
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: 24.sp,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               Text(
                 'Roll No: ${widget.student.rollno} | ${widget.student.stream}',
-                style: const TextStyle(fontSize: 16, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 16.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
 
               // Month Navigator Bar
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(16.r),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+                      icon: Icon(Icons.arrow_back_ios, color: Colors.white, size: 20.sp),
                       onPressed: _previousMonth,
                     ),
                     Text(
                       monthName,
-                      style: const TextStyle(
-                        fontSize: 18,
+                      style: TextStyle(
+                        fontSize: 18.sp,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20),
+                      icon: Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20.sp),
                       onPressed: _nextMonth,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
 
               // Status Summary Badges
               Row(
@@ -175,12 +174,12 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                   _buildStatBadge('Holiday', _holidayCount, AppColors.holiday),
                 ],
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
 
               if (_isLoading)
-                const Padding(
-                  padding: EdgeInsets.all(60),
-                  child: Center(child: CircularProgressIndicator()),
+                Padding(
+                  padding: EdgeInsets.all(60.w),
+                  child: const Center(child: CircularProgressIndicator()),
                 )
               else ...[
                 // Weekday Headers
@@ -196,7 +195,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                     _WeekdayHeader('Sat'),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
 
                 // Calendar Grid
                 GridView.builder(
@@ -214,12 +213,12 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                     }
                     final dayModel = _calendarDays[index - firstDayOfWeek];
                     final bgColor = _getStatusColor(dayModel.status);
-                    final txtColor = _getTextColor(dayModel.status);
+                    final txtColor = _getTextColor(context, dayModel.status);
 
                     return Container(
                       decoration: BoxDecoration(
                         color: bgColor,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                         border: bgColor == Colors.transparent
                             ? Border.all(color: AppColors.cardBorder.withAlpha(128))
                             : null,
@@ -228,7 +227,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                       child: Text(
                         '${dayModel.day}',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w600,
                           color: txtColor,
                         ),
@@ -236,7 +235,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                     );
                   },
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32.h),
 
                 // Attendance Gauge & %
                 AttendanceGaugeChart(percentage: _percentage),
@@ -252,8 +251,8 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
     return Column(
       children: [
         Container(
-          width: 54,
-          height: 54,
+          width: 54.w,
+          height: 54.h,
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
@@ -268,17 +267,17 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
           alignment: Alignment.center,
           child: Text(
             '$count',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 20,
+              fontSize: 20.sp,
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8.h),
         Text(
           label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
         ),
       ],
     );
@@ -292,14 +291,14 @@ class _WeekdayHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 40,
+      width: 40.w,
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 14,
+        style: TextStyle(
+          fontSize: 14.sp,
           fontWeight: FontWeight.bold,
-          color: AppColors.textSecondary,
+          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
         ),
       ),
     );

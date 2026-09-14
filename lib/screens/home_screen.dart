@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import '../models/student_model.dart';
 import '../models/stream_model.dart';
@@ -270,18 +271,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         leadingWidth: 150,
         leading: InkWell(
           onTap: _pickDate,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const ImageIcon(AssetImage('assets/images/calendar_icon.png'), color: AppColors.primary, size: 22),
-                const SizedBox(width: 8),
+                ImageIcon(const AssetImage('assets/images/calendar_icon.png'), color: AppColors.primary, size: 22.sp),
+                SizedBox(width: 8.w),
                   Text(
                     formattedDate,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).textTheme.titleLarge?.color ?? AppColors.textPrimary,
                     ),
@@ -291,16 +292,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
         ),
         centerTitle: true,
-        title: Image.asset('assets/images/logo2.png', height: 50),
+        title: Image.asset('assets/images/logo2.png', height: 50.h),
         actions: [
           IconButton(
             icon: _isSaving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                ? SizedBox(
+                    width: 20.w,
+                    height: 20.h,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.save_rounded, color: AppColors.primary, size: 26),
+                : Icon(Icons.save_rounded, color: AppColors.primary, size: 26.sp),
             onPressed: _isSaving ? null : _saveAttendance,
             tooltip: 'Save Attendance',
           ),
@@ -313,17 +314,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           children: [
             // Filter Bar (Search & Stream Dropdown)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + kToolbarHeight + 16, 16, 12),
               child: Row(
                 children: [
                   // Search Box
                   Expanded(
                     flex: 3,
                     child: Container(
-                      height: 46,
+                      height: 46.h,
                       decoration: BoxDecoration(
                         color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
-                        borderRadius: BorderRadius.circular(23),
+                        borderRadius: BorderRadius.circular(23.r),
                         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       ),
                       alignment: Alignment.center,
@@ -332,29 +333,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         onChanged: (val) => _filterStudents(),
                         textAlignVertical: TextAlignVertical.center,
                         style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           isDense: true,
                           hintText: 'Search student...',
-                          hintStyle: TextStyle(fontSize: 14, color: AppColors.textMuted),
-                          prefixIcon: Icon(Icons.search, color: AppColors.textSecondary, size: 20),
-                          prefixIconConstraints: BoxConstraints(minWidth: 46, minHeight: 46),
+                          hintStyle: TextStyle(fontSize: 14.sp, color: AppColors.textMuted),
+                          prefixIcon: Icon(Icons.search, color: AppColors.textSecondary, size: 20.sp),
+                          prefixIconConstraints: const BoxConstraints(minWidth: 46, minHeight: 46),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(right: 16),
+                          contentPadding: EdgeInsets.only(right: 16.w),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
 
                   // Stream Dropdown
                   Expanded (
-                    flex: 1,
+                    flex: 2,
                     child: Container(
-                      height: 46,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      height: 46.h,
+                      padding: EdgeInsets.symmetric(horizontal: 14.w),
                       decoration: BoxDecoration(
                         color: Theme.of(context).inputDecorationTheme.fillColor ?? Colors.white,
-                        borderRadius: BorderRadius.circular(23),
+                        borderRadius: BorderRadius.circular(23.r),
                         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
                       ),
                       alignment: Alignment.center,
@@ -363,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           value: _selectedStream,
                           isExpanded: true,
                           icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
-                          style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 14.sp, color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w500),
                           dropdownColor: Theme.of(context).cardColor,
                           items: [
                           const DropdownMenuItem(value: 'All', child: Text('All')),
@@ -392,13 +393,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.people_outline, size: 64, color: AppColors.textMuted.withOpacity(0.5)),
-                              const SizedBox(height: 12),
-                              const Text(
+                              Icon(Icons.people_outline, size: 64.sp, color: AppColors.textMuted.withOpacity(0.5)),
+                              SizedBox(height: 12.h),
+                              Text(
                                 'No students found',
-                                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+                                style: TextStyle(fontSize: 16.sp, color: AppColors.textSecondary),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4.h),
                               TextButton.icon(
                                 onPressed: () async {
                                   await Navigator.push(
@@ -417,8 +418,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
                           itemCount: _filteredStudents.length,
                           padding: EdgeInsets.only(
-                            top: MediaQuery.of(context).padding.top + kToolbarHeight + 16,
-                            bottom: 90,
+                            top: 4.h,
+                            bottom: 90.h,
                           ),
                           itemBuilder: (context, index) {
                             final student = _filteredStudents[index];
@@ -444,8 +445,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ],
         ),
       ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + kBottomNavigationBarHeight + -40.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // Sub-button: Mark Holiday
@@ -455,63 +458,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                     boxShadow: [
                       BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
                     ],
                   ),
                   child: Text('Holiday', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 FloatingActionButton.small(
                   heroTag: 'holiday_btn',
                   backgroundColor: AppColors.holiday,
                   onPressed: _markHolidayForClass,
-                  child: const ImageIcon(AssetImage('assets/images/holiday_ic.png'), color: Colors.white, size: 22),
+                  child: ImageIcon(const AssetImage('assets/images/holiday_ic.png'), color: Colors.white, size: 22.sp),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
 
-          // Sub-button: Add Student
-          ScaleTransition(
-            scale: _expandAnimation,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
-                    ],
-                  ),
-                  child: Text('Add', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
-                ),
-                const SizedBox(width: 8),
-                FloatingActionButton.small(
-                  heroTag: 'add_btn',
-                  backgroundColor: AppColors.present,
-                  onPressed: () async {
-                    _toggleFabMenu();
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AddStudentScreen()),
-                    );
-                    _loadData();
-                  },
-                  child: const ImageIcon(AssetImage('assets/images/add_icon.png'), color: Colors.white, size: 22),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
 
           // Main Trigger FAB
           FloatingActionButton(
@@ -520,11 +487,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             onPressed: _toggleFabMenu,
             child: RotationTransition(
               turns: Tween(begin: 0.0, end: 0.125).animate(_expandAnimation),
-              child: const ImageIcon(AssetImage('assets/images/plus_fab.png'), color: Colors.white, size: 28),
+              child: ImageIcon(const AssetImage('assets/images/plus_fab.png'), color: Colors.white, size: 28.sp),
             ),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

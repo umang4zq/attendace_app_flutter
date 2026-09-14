@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import 'register_screen.dart';
@@ -59,11 +60,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
+            padding: EdgeInsets.symmetric(horizontal: 28.w),
             child: Form(
               key: _formKey,
               child: Column(
@@ -74,37 +74,36 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: Image.asset(
                       'assets/images/logo.png',
-                      width: 100,
-                      height: 100,
+                      width: 100.w,
+                      height: 100.h,
                       errorBuilder: (context, error, stackTrace) => Container(
-                        width: 80,
-                        height: 80,
+                        width: 80.w,
+                        height: 80.h,
                         decoration: BoxDecoration(
                           color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20.r),
                         ),
-                        child: const Icon(Icons.school, size: 44, color: Colors.white),
+                        child: Icon(Icons.school, size: 44.sp, color: Colors.white),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24.h),
 
-                  const Text(
+                  Text(
                     'Welcome Back',
                     style: TextStyle(
-                      fontSize: 26,
+                      fontSize: 26.sp,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
+                  SizedBox(height: 6.h),
+                  Text(
                     'Sign in to manage student attendance',
-                    style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 14.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(153)),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: 32.h),
 
                   // Email Field
                   TextFormField(
@@ -120,7 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
 
                   // Password Field
                   TextFormField(
@@ -142,31 +141,31 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 28),
+                  SizedBox(height: 28.h),
 
                   // Login Button
                   ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        ? SizedBox(
+                            width: 22.w,
+                            height: 22.h,
+                            child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                           )
                         : const Text('Login'),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20.h),
 
                   // Register Route
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         "Don't have an account? ",
-                        style: TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(153)),
                       ),
                       GestureDetector(
                         onTap: () {

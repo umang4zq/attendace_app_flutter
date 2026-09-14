@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import '../models/student_model.dart';
-import '../models/stream_model.dart';
 import '../theme/app_colors.dart';
 import '../screens/monthly_calendar_screen.dart';
 
@@ -64,24 +64,24 @@ class _StudentCardState extends State<StudentCard> {
       key: Key(widget.student.docId.isNotEmpty ? widget.student.docId : widget.student.rollno),
       direction: DismissDirection.horizontal,
       background: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
         decoration: BoxDecoration(
           color: AppColors.present,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        child: const Icon(Icons.check_circle, color: Colors.white, size: 32),
+        padding: EdgeInsets.only(left: 20.w),
+        child: Icon(Icons.check_circle, color: Colors.white, size: 32.sp),
       ),
       secondaryBackground: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
         decoration: BoxDecoration(
           color: AppColors.absent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
         ),
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.cancel, color: Colors.white, size: 32),
+        padding: EdgeInsets.only(right: 20.w),
+        child: Icon(Icons.cancel, color: Colors.white, size: 32.sp),
       ),
       confirmDismiss: (direction) async {
         HapticFeedback.mediumImpact();
@@ -97,10 +97,10 @@ class _StudentCardState extends State<StudentCard> {
         duration: const Duration(milliseconds: 100),
         curve: Curves.easeOut,
         child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
         decoration: BoxDecoration(
           color: cardColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: !isColored ? Border.all(color: AppColors.cardBorder) : null,
           boxShadow: [
             BoxShadow(
@@ -117,7 +117,7 @@ class _StudentCardState extends State<StudentCard> {
             onTapUp: (_) => setState(() => _isPressed = false),
             onTapCancel: () => setState(() => _isPressed = false),
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(16.r),
               onTap: () {
                 HapticFeedback.lightImpact();
                 widget.onToggleStatus();
@@ -127,7 +127,7 @@ class _StudentCardState extends State<StudentCard> {
                 if (widget.onEdit != null) widget.onEdit!();
               },
               child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: 18.w, vertical: 14.h),
               child: Row(
                 children: [
                   // Student info
@@ -138,25 +138,25 @@ class _StudentCardState extends State<StudentCard> {
                         Text(
                           widget.student.name,
                           style: TextStyle(
-                            fontSize: 17,
+                            fontSize: 17.sp,
                             fontWeight: FontWeight.bold,
                             color: textColor,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4.h),
                         Text(
                           widget.student.rollno,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.w500,
                             color: isColored ? Colors.white : Theme.of(context).textTheme.bodySmall?.color,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4.h),
                         Text(
                           widget.student.stream,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 13.sp,
                             fontWeight: FontWeight.w600,
                             color: subTextColor,
                           ),
@@ -173,7 +173,7 @@ class _StudentCardState extends State<StudentCard> {
                         icon: Icon(
                           Icons.calendar_month_rounded,
                           color: isColored ? Colors.white : AppColors.primary,
-                          size: 28,
+                          size: 28.sp,
                         ),
                         onPressed: () {
                           HapticFeedback.lightImpact();
@@ -191,13 +191,13 @@ class _StudentCardState extends State<StudentCard> {
                           HapticFeedback.mediumImpact();
                           widget.onDelete();
                         },
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(6.r),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                           child: Text(
                             'Delete',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 13.sp,
                               fontWeight: FontWeight.w600,
                               color: isColored ? Colors.white : Colors.black87,
                             ),
@@ -212,6 +212,8 @@ class _StudentCardState extends State<StudentCard> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

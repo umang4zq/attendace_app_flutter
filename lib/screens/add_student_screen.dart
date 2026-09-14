@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/stream_model.dart';
 import '../services/firestore_service.dart';
+import '../services/csv_service.dart';
+import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 
 class AddStudentScreen extends StatefulWidget {
@@ -21,11 +25,68 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   String? _selectedStream;
   bool _isLoadingStreams = true;
   bool _isSaving = false;
+  bool _canAddManually = true;
+  bool _canImportCsv = false;
+  bool _isImportingCsv = false;
 
   @override
   void initState() {
     super.initState();
     _loadStreams();
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Super admin gets all permissions
+    if (user.email?.toLowerCase() == AuthService.superAdminEmail) {
+      setState(() { _canAddManually = true; _canImportCsv = true; });
+      return;
+    }
+
+    final perms = await FirestoreService().getTeacherPermissions(user.uid);
+    if (perms != null && mounted) {
+      setState(() {
+        _canAddManually = perms['canAddManually'] is bool ? perms['canAddManually'] as bool : true;
+        _canImportCsv = perms['canImportCsv'] is bool ? perms['canImportCsv'] as bool : false;
+      });
+    }
+  }
+
+  Future<void> _handleCsvImport() async {
+    if (_selectedStream == null || _selectedStream!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a stream first')),
+      );
+      return;
+    }
+    setState(() => _isImportingCsv = true);
+    try {
+      final csvContent = await CsvService.pickAndReadCsvFile();
+      if (csvContent == null) { setState(() => _isImportingCsv = false); return; }
+
+      final rows = CsvService.parseCsv(csvContent);
+      if (rows.isEmpty) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV file is empty or has no valid rows.')));
+        setState(() => _isImportingCsv = false);
+        return;
+      }
+
+      final count = await _firestoreService.addStudentsBatch(_selectedStream!, rows);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$count students imported!'), backgroundColor: AppColors.present),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('CSV import failed: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isImportingCsv = false);
+    }
   }
 
   Future<void> _loadStreams() async {
@@ -46,100 +107,6 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     }
   }
 
-  Future<void> _showAddStreamDialog() async {
-    final nameController = TextEditingController();
-    final yearController = TextEditingController(text: DateTime.now().year.toString());
-
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add New Stream'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Stream Name (e.g. BCA2024)'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: yearController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Year'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final sName = nameController.text.trim();
-              if (sName.isNotEmpty) {
-                await _firestoreService.addStream(sName, yearController.text);
-                if (ctx.mounted) {
-                  Navigator.of(ctx).pop();
-                }
-                if (mounted) {
-                  setState(() {
-                    _selectedStream = sName;
-                  });
-                  _loadStreams();
-                }
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showDeleteStreamDialog() async {
-    if (_selectedStream == null || _selectedStream!.isEmpty) return;
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Stream'),
-        content: Text(
-          'Are you sure you want to delete "$_selectedStream"?\nAll students inside this stream will also be deleted.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.deleteRed),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true && _selectedStream != null) {
-      try {
-        await _firestoreService.deleteStream(_selectedStream!);
-        _selectedStream = null;
-        _loadStreams();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Stream and associated students deleted.')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Delete failed: $e')),
-          );
-        }
-      }
-    }
-  }
 
   Future<void> _handleSaveStudent() async {
     if (!_formKey.currentState!.validate()) return;
@@ -189,23 +156,12 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Add Students'),
-        actions: [
-          TextButton(
-            onPressed: _showDeleteStreamDialog,
-            child: const Text('Delete Class', style: TextStyle(color: AppColors.deleteRed)),
-          ),
-          TextButton(
-            onPressed: _showAddStreamDialog,
-            child: const Text('Add Class', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-          ),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.w),
           child: Form(
             key: _formKey,
             child: Column(
@@ -220,7 +176,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                   ),
                   validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter name' : null,
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18.h),
 
                 // Roll Number
                 TextFormField(
@@ -231,17 +187,17 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                   ),
                   validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter roll number' : null,
                 ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18.h),
 
                 // Stream Dropdown
                 _isLoadingStreams
-                    ? const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator()))
+                    ? Center(child: Padding(padding: EdgeInsets.all(12.w), child: const CircularProgressIndicator()))
                     : Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
                         decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.cardBorder),
+                          color: Theme.of(context).brightness == Brightness.dark ? AppColors.cardDark : Colors.white,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.cardBorderDark : AppColors.cardBorder),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
@@ -253,7 +209,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                           ),
                         ),
                       ),
-                const SizedBox(height: 18),
+                SizedBox(height: 18.h),
 
                 // Stream Year
                 TextFormField(
@@ -264,23 +220,53 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                     prefixIcon: Icon(Icons.date_range_outlined),
                   ),
                 ),
-                const SizedBox(height: 32),
+                SizedBox(height: 32.h),
 
                 // Save Button
-                ElevatedButton(
-                  onPressed: _isSaving ? null : _handleSaveStudent,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.present,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                if (_canAddManually)
+                  ElevatedButton(
+                    onPressed: _isSaving ? null : _handleSaveStudent,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.present,
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                    ),
+                    child: _isSaving
+                        ? SizedBox(
+                            width: 22.w,
+                            height: 22.h,
+                            child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Text('SAVE', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                  )
+                else
+                  Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardBorder.withAlpha(50),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Text(
+                      'You do not have permission to add students manually.',
+                      style: TextStyle(color: AppColors.deleteRed, fontSize: 13.sp),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
-                      : const Text('SAVE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
+
+                // CSV Import Button (if permitted)
+                if (_canImportCsv) ...[
+                  SizedBox(height: 16.h),
+                  OutlinedButton.icon(
+                    onPressed: _isImportingCsv ? null : _handleCsvImport,
+                    icon: _isImportingCsv
+                        ? SizedBox(width: 18.w, height: 18.h, child: const CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.upload_file),
+                    label: Text(_isImportingCsv ? 'Importing...' : 'Import from CSV'),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 16.h),
+                      side: const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
