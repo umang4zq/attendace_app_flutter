@@ -348,15 +348,23 @@ class FirestoreService {
 
   // --- Bulk Student Operations (CSV) ---
 
-  /// Add multiple students to a stream in a single batch.
-  Future<int> addStudentsBatch(String streamId, List<Map<String, String>> students) async {
+  Future<int> addStudentsBatch(String defaultStreamId, List<Map<String, String>> students) async {
     final batch = _firestore.batch();
     int count = 0;
+    Set<String> uniqueStreams = {};
 
     for (var student in students) {
       final name = (student['name'] ?? '').trim();
       final rollno = (student['rollno'] ?? '').trim();
-      if (name.isEmpty) continue;
+      String streamId = (student['stream'] ?? '').trim();
+      
+      if (streamId.isEmpty) {
+        streamId = defaultStreamId;
+      }
+
+      if (name.isEmpty || streamId.isEmpty) continue;
+      
+      uniqueStreams.add(streamId);
 
       final docId = rollno.isNotEmpty ? rollno : name;
       final ref = _firestore
@@ -372,6 +380,15 @@ class FirestoreService {
         'createdAt': FieldValue.serverTimestamp(),
       });
       count++;
+    }
+    
+    // Create any new streams that don't exist yet
+    for (String s in uniqueStreams) {
+      final streamRef = _firestore.collection('streams').doc(s);
+      batch.set(streamRef, {
+        'name': s,
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     }
 
     if (count > 0) await batch.commit();

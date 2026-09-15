@@ -6,6 +6,7 @@ import '../models/date_model.dart';
 import '../services/firestore_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/gauge_chart.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class MonthlyCalendarScreen extends StatefulWidget {
   final StudentModel student;
@@ -125,13 +126,13 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
-              ),
+              ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad),
               SizedBox(height: 8.h),
               Text(
                 'Roll No: ${widget.student.rollno} | ${widget.student.stream}',
                 style: TextStyle(fontSize: 16.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
                 textAlign: TextAlign.center,
-              ),
+              ).animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad),
               SizedBox(height: 32.h),
 
               // Month Navigator Bar
@@ -169,9 +170,9 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStatBadge('Present', _presentCount, AppColors.present),
-                  _buildStatBadge('Absent', _absentCount, AppColors.absent),
-                  _buildStatBadge('Holiday', _holidayCount, AppColors.holiday),
+                  _buildStatBadge('Present', _presentCount, AppColors.present).animate(delay: 200.ms).scale(duration: 400.ms, curve: Curves.easeOutBack),
+                  _buildStatBadge('Absent', _absentCount, AppColors.absent).animate(delay: 300.ms).scale(duration: 400.ms, curve: Curves.easeOutBack),
+                  _buildStatBadge('Holiday', _holidayCount, AppColors.holiday).animate(delay: 400.ms).scale(duration: 400.ms, curve: Curves.easeOutBack),
                 ],
               ),
               SizedBox(height: 24.h),
@@ -232,13 +233,16 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                           color: txtColor,
                         ),
                       ),
-                    );
+                    ).animate(delay: (20 * index).ms).fadeIn(duration: 300.ms).scale(curve: Curves.easeOutBack);
                   },
                 ),
                 SizedBox(height: 32.h),
 
                 // Attendance Gauge & %
-                AttendanceGaugeChart(percentage: _percentage),
+                AttendanceGaugeChart(percentage: _percentage)
+                  .animate(delay: 600.ms)
+                  .fadeIn(duration: 500.ms)
+                  .slideY(begin: 0.1, end: 0, curve: Curves.easeOutQuad),
               ],
             ],
           ),

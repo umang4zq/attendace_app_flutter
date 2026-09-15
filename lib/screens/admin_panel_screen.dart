@@ -297,6 +297,41 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
   // ========== BUILD ==========
 
+  void _showCsvInstructions() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.info_outline, color: AppColors.primary),
+            SizedBox(width: 8.w),
+            const Expanded(child: Text('CSV Import Guide')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Your CSV file must have a header row as the first line.', style: TextStyle(fontSize: 14.sp)),
+              SizedBox(height: 12.h),
+              Text('Required Column:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
+              Text('• name: The student\'s full name.', style: TextStyle(fontSize: 14.sp)),
+              SizedBox(height: 8.h),
+              Text('Optional Columns:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
+              Text('• rollno: The student\'s roll number.\n• stream: The class/stream name.', style: TextStyle(fontSize: 14.sp)),
+              SizedBox(height: 12.h),
+              Text('If a "stream" is provided for a student, it overrides the stream selected in the dropdown. If that stream doesn\'t exist yet, it will be automatically created!', style: TextStyle(fontSize: 14.sp, fontStyle: FontStyle.italic, color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(153))),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Got it!')),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -306,6 +341,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Panel'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: _showCsvInstructions,
+            tooltip: 'CSV Import Instructions',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,
@@ -599,7 +641,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           // Import section
           Text('Import Students', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
           SizedBox(height: 4.h),
-          Text('CSV file must have a "name" column. "rollno" column is optional.',
+          Text('CSV must have a "name" column. "rollno" and "stream" are optional.\nIf a "stream" is provided, it overrides the selection above.',
               style: TextStyle(fontSize: 12.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(153))),
           SizedBox(height: 12.h),
 

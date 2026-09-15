@@ -59,10 +59,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     return Scaffold(
       extendBody: true, // Allow body to scroll under the translucent bottom bar
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
-      ),
+      body: screens[_currentIndex],
       bottomNavigationBar: ClipRect(
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),

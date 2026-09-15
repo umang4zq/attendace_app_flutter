@@ -9,6 +9,7 @@ import '../theme/app_colors.dart';
 import '../widgets/student_card.dart';
 import 'add_student_screen.dart';
 import 'update_student_screen.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -438,7 +439,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 );
                                 _loadData();
                               },
-                            );
+                            ).animate(delay: (50 * index).ms)
+                             .fadeIn(duration: 400.ms)
+                             .slideX(begin: 0.05, end: 0, curve: Curves.easeOutQuad);
                           },
                         ),
             ),

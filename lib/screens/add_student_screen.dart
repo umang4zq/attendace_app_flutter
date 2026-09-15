@@ -145,6 +145,41 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     }
   }
 
+  void _showCsvInstructions() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.info_outline, color: AppColors.primary),
+            SizedBox(width: 8.w),
+            const Expanded(child: Text('CSV Import Guide')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Your CSV file must have a header row as the first line.', style: TextStyle(fontSize: 14.sp)),
+              SizedBox(height: 12.h),
+              Text('Required Column:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
+              Text('• name: The student\'s full name.', style: TextStyle(fontSize: 14.sp)),
+              SizedBox(height: 8.h),
+              Text('Optional Columns:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp)),
+              Text('• rollno: The student\'s roll number.\n• stream: The class/stream name.', style: TextStyle(fontSize: 14.sp)),
+              SizedBox(height: 12.h),
+              Text('If a "stream" is provided for a student, it overrides the stream selected in the dropdown. If that stream doesn\'t exist yet, it will be automatically created!', style: TextStyle(fontSize: 14.sp, fontStyle: FontStyle.italic, color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(153))),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Got it!')),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -158,6 +193,13 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Students'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            onPressed: _showCsvInstructions,
+            tooltip: 'CSV Import Instructions',
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -192,23 +234,44 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                 // Stream Dropdown
                 _isLoadingStreams
                     ? Center(child: Padding(padding: EdgeInsets.all(12.w), child: const CircularProgressIndicator()))
-                    : Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark ? AppColors.cardDark : Colors.white,
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.cardBorderDark : AppColors.cardBorder),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _streams.any((s) => s.name == _selectedStream) ? _selectedStream : null,
-                            hint: const Text('Select Stream'),
-                            isExpanded: true,
-                            items: _streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
-                            onChanged: (val) => setState(() => _selectedStream = val),
+                    : _streams.isEmpty
+                        ? Container(
+                            padding: EdgeInsets.all(16.w),
+                            decoration: BoxDecoration(
+                              color: AppColors.deleteRed.withAlpha(25),
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(color: AppColors.deleteRed.withAlpha(75)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, color: AppColors.deleteRed),
+                                SizedBox(width: 12.w),
+                                Expanded(
+                                  child: Text(
+                                    'No streams found! Please create a class from the Admin Panel first.',
+                                    style: TextStyle(color: AppColors.deleteRed, fontSize: 13.sp),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Container(
+                            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).brightness == Brightness.dark ? AppColors.cardDark : Colors.white,
+                              borderRadius: BorderRadius.circular(12.r),
+                              border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? AppColors.cardBorderDark : AppColors.cardBorder),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _streams.any((s) => s.name == _selectedStream) ? _selectedStream : null,
+                                hint: const Text('Select Stream'),
+                                isExpanded: true,
+                                items: _streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
+                                onChanged: (val) => setState(() => _selectedStream = val),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
                 SizedBox(height: 18.h),
 
                 // Stream Year

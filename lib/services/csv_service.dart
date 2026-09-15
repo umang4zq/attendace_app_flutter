@@ -29,6 +29,7 @@ class CsvService {
     final header = rows.first.map((e) => e.toString().trim().toLowerCase()).toList();
     final nameIdx = header.indexOf('name');
     final rollIdx = header.indexOf('rollno');
+    final streamIdx = header.indexOf('stream');
 
     if (nameIdx == -1) {
       throw FormatException('CSV must have a "name" column. Found: ${rows.first}');
@@ -39,9 +40,10 @@ class CsvService {
       final row = rows[i];
       final name = (nameIdx < row.length) ? row[nameIdx].toString().trim() : '';
       final rollno = (rollIdx != -1 && rollIdx < row.length) ? row[rollIdx].toString().trim() : '';
+      final stream = (streamIdx != -1 && streamIdx < row.length) ? row[streamIdx].toString().trim() : '';
 
       if (name.isNotEmpty) {
-        students.add({'name': name, 'rollno': rollno});
+        students.add({'name': name, 'rollno': rollno, 'stream': stream});
       }
     }
     return students;
