@@ -213,8 +213,13 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                       return const SizedBox();
                     }
                     final dayModel = _calendarDays[index - firstDayOfWeek];
-                    final bgColor = _getStatusColor(dayModel.status);
-                    final txtColor = _getTextColor(context, dayModel.status);
+                    Color bgColor = _getStatusColor(dayModel.status);
+                    Color txtColor = _getTextColor(context, dayModel.status);
+
+                    if (index % 7 == 0) {
+                      bgColor = Colors.amber  ;
+                      txtColor = Colors.white;
+                    }
 
                     return Container(
                       decoration: BoxDecoration(
@@ -290,7 +295,8 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
 
 class _WeekdayHeader extends StatelessWidget {
   final String text;
-  const _WeekdayHeader(this.text);
+  final Color? color;
+  const _WeekdayHeader(this.text, {this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +308,7 @@ class _WeekdayHeader extends StatelessWidget {
         style: TextStyle(
           fontSize: 14.sp,
           fontWeight: FontWeight.bold,
-          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+          color: color ?? Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
         ),
       ),
     );

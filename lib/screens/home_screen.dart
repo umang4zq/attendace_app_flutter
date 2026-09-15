@@ -139,6 +139,42 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  void _markAllPresentForClass() {
+    _toggleFabMenu();
+    setState(() {
+      for (var student in _filteredStudents) {
+        student.selected = false;
+        student.isPresent = true;
+        student.isAbsent = false;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Marked all as Present! Click Save to confirm.'),
+        backgroundColor: AppColors.present,
+      ),
+    );
+  }
+
+  void _markAllAbsentForClass() {
+    _toggleFabMenu();
+    setState(() {
+      for (var student in _filteredStudents) {
+        student.selected = false;
+        student.isPresent = false;
+        student.isAbsent = true;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Marked all as Absent! Click Save to confirm.'),
+        backgroundColor: AppColors.absent,
+      ),
+    );
+  }
+
   Future<void> _saveAttendance() async {
     if (_filteredStudents.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -454,6 +490,64 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          // Sub-button: Mark All Absent
+          ScaleTransition(
+            scale: _expandAnimation,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8.r),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                    ],
+                  ),
+                  child: Text('Mark All Absent', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                ),
+                SizedBox(width: 8.w),
+                FloatingActionButton.small(
+                  heroTag: 'absent_btn',
+                  backgroundColor: AppColors.absent,
+                  onPressed: _markAllAbsentForClass,
+                  child: Icon(Icons.close, color: Colors.white, size: 22.sp),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 8.h),
+          
+          // Sub-button: Mark All Present
+          ScaleTransition(
+            scale: _expandAnimation,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8.r),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                    ],
+                  ),
+                  child: Text('Mark All Present', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
+                ),
+                SizedBox(width: 8.w),
+                FloatingActionButton.small(
+                  heroTag: 'present_btn',
+                  backgroundColor: AppColors.present,
+                  onPressed: _markAllPresentForClass,
+                  child: Icon(Icons.check, color: Colors.white, size: 22.sp),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 8.h),
+
           // Sub-button: Mark Holiday
           ScaleTransition(
             scale: _expandAnimation,
@@ -481,6 +575,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ],
             ),
           ),
+          SizedBox(height: 8.h),
 
 
           // Main Trigger FAB
