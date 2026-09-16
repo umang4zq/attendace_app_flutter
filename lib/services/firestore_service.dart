@@ -314,7 +314,7 @@ class FirestoreService {
 
   /// Get all teacher documents.
   Future<List<Map<String, dynamic>>> getAllTeachers() async {
-    final snapshot = await _firestore.collection('teachers').get();
+    final snapshot = await _firestore.collection('users').get();
     return snapshot.docs.map((doc) {
       final data = doc.data();
       data['uid'] = doc.id;
@@ -324,7 +324,7 @@ class FirestoreService {
 
   /// Get a single teacher's permissions by UID.
   Future<Map<String, dynamic>?> getTeacherPermissions(String uid) async {
-    final doc = await _firestore.collection('teachers').doc(uid).get();
+    final doc = await _firestore.collection('users').doc(uid).get();
     if (!doc.exists) return null;
     final data = doc.data()!;
     data['uid'] = doc.id;
@@ -338,12 +338,12 @@ class FirestoreService {
     if (canImportCsv != null) updates['canImportCsv'] = canImportCsv;
     if (updates.isEmpty) return;
 
-    await _firestore.collection('teachers').doc(uid).update(updates);
+    await _firestore.collection('users').doc(uid).update(updates);
   }
 
   /// Delete a teacher's permission doc.
   Future<void> deleteTeacherDoc(String uid) async {
-    await _firestore.collection('teachers').doc(uid).delete();
+    await _firestore.collection('users').doc(uid).delete();
   }
 
   // --- Bulk Student Operations (CSV) ---

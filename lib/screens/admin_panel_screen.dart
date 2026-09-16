@@ -64,14 +64,21 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   }
 
   Future<void> _togglePermission(String uid, String field, bool value) async {
+    // Optimistic UI update
+    setState(() {
+      final index = _teachers.indexWhere((t) => t['uid'] == uid);
+      if (index != -1) _teachers[index][field] = value;
+    });
+
     try {
       if (field == 'canAddManually') {
         await _firestoreService.setTeacherPermissions(uid, canAddManually: value);
       } else {
         await _firestoreService.setTeacherPermissions(uid, canImportCsv: value);
       }
-      _loadTeachers();
     } catch (e) {
+      // Revert if it fails
+      _loadTeachers();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
@@ -95,8 +102,20 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
       ),
     );
     if (confirm == true) {
-      await _firestoreService.deleteTeacherDoc(uid);
-      _loadTeachers();
+      // Optimistic UI update
+      setState(() {
+        _teachers.removeWhere((t) => t['uid'] == uid);
+      });
+
+      try {
+        await _firestoreService.deleteTeacherDoc(uid);
+      } catch (e) {
+        // Revert on error
+        _loadTeachers();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
     }
   }
 
@@ -185,10 +204,22 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
       ),
     );
     if (confirm == true) {
-      await _firestoreService.deleteStream(streamId);
-      _loadData();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Stream deleted.')));
+      // Optimistic UI update
+      setState(() {
+        _streams.removeWhere((s) => s.name == streamId);
+        _studentsByStream.remove(streamId);
+      });
+
+      try {
+        await _firestoreService.deleteStream(streamId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Stream deleted.')));
+        }
+      } catch (e) {
+        _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
       }
     }
   }
@@ -210,11 +241,20 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
       ),
     );
     if (confirm == true) {
-      await _firestoreService.deleteStudent(
-        student.streamId.isNotEmpty ? student.streamId : student.stream,
-        student.docId,
-      );
-      _loadData();
+      final streamName = student.streamId.isNotEmpty ? student.streamId : student.stream;
+      // Optimistic UI update
+      setState(() {
+        _studentsByStream[streamName]?.removeWhere((s) => s.docId == student.docId);
+      });
+
+      try {
+        await _firestoreService.deleteStudent(streamName, student.docId);
+      } catch (e) {
+        _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
     }
   }
 

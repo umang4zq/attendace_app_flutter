@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../services/auth_service.dart';
@@ -35,6 +36,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
           context,
           MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
           (route) => false,
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Registration failed. Please try again.';
+      if (e.code == 'email-already-in-use') {
+        errorMessage = 'The email address is already in use by another account.';
+      } else if (e.code == 'weak-password') {
+        errorMessage = 'The password provided is too weak.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'The email address is not valid.';
+      } else {
+        errorMessage = e.message ?? errorMessage;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: AppColors.absent,
+          ),
         );
       }
     } catch (e) {

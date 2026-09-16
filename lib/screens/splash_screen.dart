@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart';
+import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'main_navigation_screen.dart';
 
@@ -35,6 +36,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
+      // Ensure their Firestore profile exists (in case they got stuck during registration earlier)
+      try {
+        await AuthService().ensureTeacherDocExists();
+      } catch (e) {
+        debugPrint('Splash screen ensure doc error: $e');
+      }
+
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const MainNavigationScreen()),

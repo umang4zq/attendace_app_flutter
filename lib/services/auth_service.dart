@@ -52,17 +52,23 @@ class AuthService {
     final user = currentUser;
     if (user == null) return;
 
-    final docRef = _firestore.collection('teachers').doc(user.uid);
-    final doc = await docRef.get();
+    try {
+      final docRef = _firestore.collection('users').doc(user.uid);
+      final doc = await docRef.get();
 
-    if (!doc.exists) {
-      final isAdmin = user.email?.toLowerCase() == superAdminEmail;
-      await docRef.set({
-        'email': user.email ?? '',
-        'canAddManually': true,
-        'canImportCsv': isAdmin,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      if (!doc.exists) {
+        final isAdmin = user.email?.toLowerCase() == superAdminEmail;
+        await docRef.set({
+          'email': user.email ?? '',
+          'canAddManually': true,
+          'canImportCsv': isAdmin,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      // Log the error but do not rethrow.
+      // If we throw here, the auth flow fails in the UI even though the user was successfully authenticated in Firebase Auth.
+      print('Error ensuring teacher doc exists: $e');
     }
   }
 
