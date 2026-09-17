@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 
@@ -11,6 +12,14 @@ void main() async {
     await Firebase.initializeApp();
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
+  }
+
+  final prefs = await SharedPreferences.getInstance();
+  final savedTheme = prefs.getString('themeMode');
+  if (savedTheme == 'dark') {
+    themeNotifier.value = ThemeMode.dark;
+  } else if (savedTheme == 'light') {
+    themeNotifier.value = ThemeMode.light;
   }
 
   runApp(const AttendanceApp());

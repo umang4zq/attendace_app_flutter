@@ -6,8 +6,11 @@ import '../main.dart';
 import '../models/stream_model.dart';
 import '../services/firestore_service.dart';
 import '../services/pdf_service.dart';
+import '../services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_colors.dart';
 import 'login_screen.dart';
+import 'add_student_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -180,8 +183,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Theme.of(context).brightness == Brightness.dark);
               return IconButton(
                 icon: Icon(isDarkTheme ? Icons.light_mode : Icons.dark_mode),
-                onPressed: () {
-                  themeNotifier.value = isDarkTheme ? ThemeMode.light : ThemeMode.dark;
+                onPressed: () async {
+                  final newMode = isDarkTheme ? ThemeMode.light : ThemeMode.dark;
+                  themeNotifier.value = newMode;
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('themeMode', newMode == ThemeMode.dark ? 'dark' : 'light');
                 },
                 tooltip: 'Toggle Theme',
               );
@@ -368,6 +374,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 label: Text('Export PDF', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
               ),
               SizedBox(height: 16.h),
+
+              // Add Student Button
+              if (!AuthService().isSuperAdmin) ...[
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AddStudentScreen()),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                  ),
+                  icon: const Icon(Icons.person_add),
+                  label: Text('Add Student', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                ),
+                SizedBox(height: 16.h),
+              ],
 
               // Logout Button
               OutlinedButton(

@@ -129,7 +129,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
               ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad),
               SizedBox(height: 8.h),
               Text(
-                'Roll No: ${widget.student.rollno} | ${widget.student.stream}',
+                'Roll No: ${widget.student.rollno} | ${widget.student.stream}${widget.student.semester.isNotEmpty ? ' (Sem ${widget.student.semester})' : ''}',
                 style: TextStyle(fontSize: 16.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
                 textAlign: TextAlign.center,
               ).animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad),
@@ -217,7 +217,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                     Color txtColor = _getTextColor(context, dayModel.status);
 
                     if (index % 7 == 0) {
-                      bgColor = Colors.amber  ;
+                      bgColor = Colors.amber;
                       txtColor = Colors.white;
                     }
 

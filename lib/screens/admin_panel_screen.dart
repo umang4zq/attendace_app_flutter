@@ -144,25 +144,34 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
   Future<void> _showAddStreamDialog() async {
     final nameController = TextEditingController();
     final yearController = TextEditingController(text: DateTime.now().year.toString());
+    final semesterController = TextEditingController();
 
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Add New Stream'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Stream Name (e.g. BCA2024)'),
-            ),
-            SizedBox(height: 12.h),
-            TextField(
-              controller: yearController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Year'),
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Stream Name (e.g. BCA2024)'),
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: yearController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Year'),
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: semesterController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Semester'),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -173,7 +182,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
             onPressed: () async {
               final sName = nameController.text.trim();
               if (sName.isNotEmpty) {
-                await _firestoreService.addStream(sName, yearController.text);
+                await _firestoreService.addStream(sName, yearController.text, semesterController.text);
                 if (ctx.mounted) {
                   Navigator.of(ctx).pop();
                 }
@@ -256,6 +265,83 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         }
       }
     }
+  }
+
+  Future<void> _showPromoteStreamDialog(String oldStreamId) async {
+    final nameController = TextEditingController(text: oldStreamId);
+    final yearController = TextEditingController(text: DateTime.now().year.toString());
+    final semesterController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Promote $oldStreamId'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('This will copy all students to a new stream.', style: TextStyle(fontSize: 13.sp, color: AppColors.textMuted)),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'New Stream Name (e.g. BCA 2nd Sem)'),
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: yearController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Year'),
+              ),
+              SizedBox(height: 12.h),
+              TextField(
+                controller: semesterController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Semester'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newStreamName = nameController.text.trim();
+              if (newStreamName.isNotEmpty) {
+                showDialog(
+                  context: ctx,
+                  barrierDismissible: false,
+                  builder: (c) => const Center(child: CircularProgressIndicator()),
+                );
+
+                try {
+                  final count = await _firestoreService.promoteStream(oldStreamId, newStreamName, yearController.text, semesterController.text);
+                  
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx); // pop loading
+                    Navigator.pop(ctx); // pop promote dialog
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Successfully promoted $count students to $newStreamName!'), backgroundColor: AppColors.present),
+                    );
+                    _loadData();
+                  }
+                } catch (e) {
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx); // pop loading
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                }
+              }
+            },
+            child: const Text('Promote'),
+          ),
+        ],
+      ),
+    );
   }
 
   // ========== Tab 3: CSV ==========
@@ -553,13 +639,19 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                       // Stream header
                       ListTile(
                         onTap: () => setState(() => _expandedStream = isExpanded ? null : stream.name),
-                        title: Text(stream.name, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
+                        title: Text('${stream.name}${stream.semester != null && stream.semester!.isNotEmpty ? ' (Sem ${stream.semester})' : ''}', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
                         subtitle: Text('${students.length} students', style: TextStyle(fontSize: 13.sp)),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
+                              icon: Icon(Icons.upgrade, color: AppColors.primary, size: 22.sp),
+                              tooltip: 'Promote Batch',
+                              onPressed: () => _showPromoteStreamDialog(stream.name),
+                            ),
+                            IconButton(
                               icon: Icon(Icons.delete_forever, color: AppColors.deleteRed, size: 22.sp),
+                              tooltip: 'Delete Stream',
                               onPressed: () => _deleteStreamAdmin(stream.name),
                             ),
                             Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 24.sp),

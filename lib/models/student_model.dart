@@ -4,6 +4,7 @@ class StudentModel {
   String rollno;
   String stream;
   String streamId;
+  String semester;
   bool isPresent;
   bool isAbsent;
   bool selected; // Used for holiday selection
@@ -15,19 +16,21 @@ class StudentModel {
     this.rollno = '',
     this.stream = '',
     this.streamId = '',
+    this.semester = '',
     this.isPresent = false,
     this.isAbsent = false,
     this.selected = false,
     this.attendancePercentage = 0.0,
   });
 
-  factory StudentModel.fromMap(Map<String, dynamic> map, String docId, {String streamId = ''}) {
+  factory StudentModel.fromMap(Map<String, dynamic> map, String docId, {String streamId = '', String semester = ''}) {
     return StudentModel(
       docId: docId,
       name: (map['name'] ?? '').toString().trim(),
       rollno: (map['rollno'] ?? '').toString().trim(),
       stream: (map['stream'] ?? streamId).toString().trim(),
       streamId: streamId.isNotEmpty ? streamId : (map['stream'] ?? '').toString().trim(),
+      semester: semester,
       isPresent: map['isPresent'] is bool ? map['isPresent'] as bool : false,
       isAbsent: map['isAbsent'] is bool ? map['isAbsent'] as bool : false,
       selected: map['selected'] is bool ? map['selected'] as bool : false,
@@ -53,6 +56,7 @@ class StudentModel {
     String? rollno,
     String? stream,
     String? streamId,
+    String? semester,
     bool? isPresent,
     bool? isAbsent,
     bool? selected,
@@ -64,6 +68,7 @@ class StudentModel {
       rollno: rollno ?? this.rollno,
       stream: stream ?? this.stream,
       streamId: streamId ?? this.streamId,
+      semester: semester ?? this.semester,
       isPresent: isPresent ?? this.isPresent,
       isAbsent: isAbsent ?? this.isAbsent,
       selected: selected ?? this.selected,

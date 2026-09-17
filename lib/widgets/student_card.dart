@@ -154,7 +154,7 @@ class _StudentCardState extends State<StudentCard> {
                         ),
                         SizedBox(height: 4.h),
                         Text(
-                          widget.student.stream,
+                          '${widget.student.stream}${widget.student.semester.isNotEmpty ? ' (Sem ${widget.student.semester})' : ''}',
                           style: TextStyle(
                             fontSize: 13.sp,
                             fontWeight: FontWeight.w600,

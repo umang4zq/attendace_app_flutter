@@ -295,7 +295,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final formattedDate = DateFormat('dd-MMM-yy').format(_selectedDate);
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: false,
       appBar: AppBar(
         flexibleSpace: ClipRect(
           child: BackdropFilter(
@@ -351,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           children: [
             // Filter Bar (Search & Stream Dropdown)
             Padding(
-              padding: EdgeInsets.fromLTRB(16, MediaQuery.of(context).padding.top + kToolbarHeight + 16, 16, 12),
+              padding: EdgeInsets.fromLTRB(16.w, 16.h, 16.w, 12.h),
               child: Row(
                 children: [
                   // Search Box

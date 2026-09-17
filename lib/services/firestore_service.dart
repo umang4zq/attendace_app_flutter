@@ -16,13 +16,14 @@ class FirestoreService {
     }).toList();
   }
 
-  Future<void> addStream(String streamName, String year) async {
+  Future<void> addStream(String streamName, String year, [String semester = '']) async {
     final cleanName = streamName.trim();
     if (cleanName.isEmpty) return;
 
     await _firestore.collection('streams').doc(cleanName).set({
       'name': cleanName,
       'year': year.trim(),
+      'semester': semester.trim(),
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -54,6 +55,8 @@ class FirestoreService {
 
     for (var streamDoc in streamDocs.docs) {
       final streamId = streamDoc.id;
+      final semester = streamDoc.data()['semester']?.toString() ?? '';
+      
       final studentSnapshots = await _firestore
           .collection('streams')
           .doc(streamId)
@@ -62,7 +65,7 @@ class FirestoreService {
 
       for (var sdoc in studentSnapshots.docs) {
         final data = sdoc.data();
-        final student = StudentModel.fromMap(data, sdoc.id, streamId: streamId);
+        final student = StudentModel.fromMap(data, sdoc.id, streamId: streamId, semester: semester);
         studentMap[student.docId] = student;
       }
     }
@@ -74,6 +77,9 @@ class FirestoreService {
       return fetchAllStudents();
     }
 
+    final streamDoc = await _firestore.collection('streams').doc(streamId).get();
+    final semester = streamDoc.data()?['semester']?.toString() ?? '';
+
     final snapshot = await _firestore
         .collection('streams')
         .doc(streamId)
@@ -81,7 +87,7 @@ class FirestoreService {
         .get();
 
     return snapshot.docs.map((doc) {
-      return StudentModel.fromMap(doc.data(), doc.id, streamId: streamId);
+      return StudentModel.fromMap(doc.data(), doc.id, streamId: streamId, semester: semester);
     }).toList();
   }
 
@@ -392,6 +398,45 @@ class FirestoreService {
     }
 
     if (count > 0) await batch.commit();
+    return count;
+  }
+
+  // --- Promote Batch Operation ---
+
+  Future<int> promoteStream(String oldStreamId, String newStreamName, String newStreamYear, String newStreamSemester) async {
+    final students = await fetchStudentsByStream(oldStreamId);
+    if (students.isEmpty) return 0;
+
+    final cleanNewStreamName = newStreamName.trim();
+    if (cleanNewStreamName.isEmpty) return 0;
+
+    // Create the new stream document
+    await addStream(cleanNewStreamName, newStreamYear, newStreamSemester);
+
+    final batch = _firestore.batch();
+    int count = 0;
+
+    for (var student in students) {
+      final docId = student.rollno.isNotEmpty ? student.rollno : student.name;
+      final ref = _firestore
+          .collection('streams')
+          .doc(cleanNewStreamName)
+          .collection('students')
+          .doc(docId);
+
+      batch.set(ref, {
+        'name': student.name,
+        'rollno': student.rollno,
+        'stream': cleanNewStreamName,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      count++;
+    }
+
+    if (count > 0) {
+      await batch.commit();
+    }
+
     return count;
   }
 }
