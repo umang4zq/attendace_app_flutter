@@ -8,6 +8,8 @@ import '../theme/app_colors.dart';
 import '../widgets/gauge_chart.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+enum ViewMode { monthly, semester1, semester2, yearly }
+
 class MonthlyCalendarScreen extends StatefulWidget {
   final StudentModel student;
 
@@ -23,6 +25,8 @@ class MonthlyCalendarScreen extends StatefulWidget {
 class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   late DateTime _selectedMonth;
+  ViewMode _viewMode = ViewMode.monthly;
+
   bool _isLoading = true;
 
   int _presentCount = 0;
@@ -30,12 +34,21 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
   int _holidayCount = 0;
   double _percentage = 0.0;
   List<DateModel> _calendarDays = [];
+  List<Map<String, dynamic>> _monthlyBreakdown = [];
 
   @override
   void initState() {
     super.initState();
     _selectedMonth = DateTime.now();
-    _loadMonthData();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    if (_viewMode == ViewMode.monthly) {
+      await _loadMonthData();
+    } else {
+      await _loadAggregatedData();
+    }
   }
 
   Future<void> _loadMonthData() async {
@@ -55,6 +68,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
           _holidayCount = data['holidayCount'] as int;
           _percentage = data['percentage'] as double;
           _calendarDays = data['calendarDays'] as List<DateModel>;
+          _monthlyBreakdown = [];
           _isLoading = false;
         });
       }
@@ -65,18 +79,63 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
     }
   }
 
-  void _previousMonth() {
-    setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
-    });
-    _loadMonthData();
+  Future<void> _loadAggregatedData() async {
+    setState(() => _isLoading = true);
+    try {
+      List<int> monthsToFetch = [];
+      if (_viewMode == ViewMode.yearly) {
+        monthsToFetch = List.generate(12, (index) => index + 1);
+      } else if (_viewMode == ViewMode.semester1) {
+        monthsToFetch = [1, 2, 3, 4, 5, 6];
+      } else if (_viewMode == ViewMode.semester2) {
+        monthsToFetch = [7, 8, 9, 10, 11, 12];
+      }
+
+      final data = await _firestoreService.fetchAggregatedAttendance(
+        streamId: widget.student.streamId.isNotEmpty ? widget.student.streamId : widget.student.stream,
+        studentId: widget.student.docId.isNotEmpty ? widget.student.docId : widget.student.rollno,
+        year: _selectedMonth.year,
+        months: monthsToFetch,
+      );
+
+      if (mounted) {
+        setState(() {
+          _presentCount = data['presentCount'] as int;
+          _absentCount = data['absentCount'] as int;
+          _holidayCount = data['holidayCount'] as int;
+          _percentage = data['percentage'] as double;
+          _monthlyBreakdown = data['monthlyBreakdown'] as List<Map<String, dynamic>>;
+          _calendarDays = [];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
-  void _nextMonth() {
+  void _previousPeriod() {
     setState(() {
-      _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
+      if (_viewMode == ViewMode.monthly) {
+        _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month - 1);
+      } else {
+        _selectedMonth = DateTime(_selectedMonth.year - 1, _selectedMonth.month);
+      }
     });
-    _loadMonthData();
+    _loadData();
+  }
+
+  void _nextPeriod() {
+    setState(() {
+      if (_viewMode == ViewMode.monthly) {
+        _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
+      } else {
+        _selectedMonth = DateTime(_selectedMonth.year + 1, _selectedMonth.month);
+      }
+    });
+    _loadData();
   }
 
   Color _getStatusColor(String status) {
@@ -105,12 +164,59 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final monthName = DateFormat('MMMM yyyy').format(_selectedMonth);
-    final firstDayOfWeek = DateTime(_selectedMonth.year, _selectedMonth.month, 1).weekday % 7;
+    final periodLabel = _viewMode == ViewMode.monthly
+        ? DateFormat('MMMM yyyy').format(_selectedMonth)
+        : _selectedMonth.year.toString();
+    
+    final firstDayOfWeek = _viewMode == ViewMode.monthly 
+        ? DateTime(_selectedMonth.year, _selectedMonth.month, 1).weekday % 7 
+        : 0;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Monthly Attendance'),
+        title: const Text('Attendance Details'),
+        actions: [
+          PopupMenuButton<ViewMode>(
+            initialValue: _viewMode,
+            onSelected: (ViewMode newSelection) {
+              setState(() {
+                _viewMode = newSelection;
+              });
+              _loadData();
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<ViewMode>>[
+              const PopupMenuItem<ViewMode>(
+                value: ViewMode.monthly,
+                child: Text('Monthly'),
+              ),
+              const PopupMenuItem<ViewMode>(
+                value: ViewMode.semester1,
+                child: Text('Semester 1'),
+              ),
+              const PopupMenuItem<ViewMode>(
+                value: ViewMode.semester2,
+                child: Text('Semester 2'),
+              ),
+              const PopupMenuItem<ViewMode>(
+                value: ViewMode.yearly,
+                child: Text('Yearly'),
+              ),
+            ],
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              child: Row(
+                children: [
+                  Text(
+                    _getViewModeLabel(_viewMode),
+                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+                  ),
+                  SizedBox(width: 4.w),
+                  Icon(Icons.keyboard_arrow_down, size: 20.sp),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -133,9 +239,11 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                 style: TextStyle(fontSize: 16.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                 textAlign: TextAlign.center,
               ).animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad),
-              SizedBox(height: 32.h),
+              SizedBox(height: 24.h),
 
-              // Month Navigator Bar
+
+
+              // Navigator Bar
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 decoration: BoxDecoration(
@@ -147,10 +255,10 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                   children: [
                     IconButton(
                       icon: Icon(Icons.arrow_back_ios, color: Colors.white, size: 20.sp),
-                      onPressed: _previousMonth,
+                      onPressed: _previousPeriod,
                     ),
                     Text(
-                      monthName,
+                      periodLabel,
                       style: TextStyle(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.bold,
@@ -159,7 +267,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                     ),
                     IconButton(
                       icon: Icon(Icons.arrow_forward_ios, color: Colors.white, size: 20.sp),
-                      onPressed: _nextMonth,
+                      onPressed: _nextPeriod,
                     ),
                   ],
                 ),
@@ -183,64 +291,98 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                   child: const Center(child: CircularProgressIndicator()),
                 )
               else ...[
-                // Weekday Headers
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _WeekdayHeader('Sun'),
-                    _WeekdayHeader('Mon'),
-                    _WeekdayHeader('Tue'),
-                    _WeekdayHeader('Wed'),
-                    _WeekdayHeader('Thu'),
-                    _WeekdayHeader('Fri'),
-                    _WeekdayHeader('Sat'),
-                  ],
-                ),
-                SizedBox(height: 12.h),
-
-                // Calendar Grid
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 7,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
+                if (_viewMode == ViewMode.monthly) ...[
+                  // Weekday Headers
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _WeekdayHeader('Sun'),
+                      _WeekdayHeader('Mon'),
+                      _WeekdayHeader('Tue'),
+                      _WeekdayHeader('Wed'),
+                      _WeekdayHeader('Thu'),
+                      _WeekdayHeader('Fri'),
+                      _WeekdayHeader('Sat'),
+                    ],
                   ),
-                  itemCount: firstDayOfWeek + _calendarDays.length,
-                  itemBuilder: (context, index) {
-                    if (index < firstDayOfWeek) {
-                      return const SizedBox();
-                    }
-                    final dayModel = _calendarDays[index - firstDayOfWeek];
-                    Color bgColor = _getStatusColor(dayModel.status);
-                    Color txtColor = _getTextColor(context, dayModel.status);
+                  SizedBox(height: 12.h),
 
-                    if (index % 7 == 0) {
-                      bgColor = Colors.amber;
-                      txtColor = Colors.white;
-                    }
+                  // Calendar Grid
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 7,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: firstDayOfWeek + _calendarDays.length,
+                    itemBuilder: (context, index) {
+                      if (index < firstDayOfWeek) {
+                        return const SizedBox();
+                      }
+                      final dayModel = _calendarDays[index - firstDayOfWeek];
+                      Color bgColor = _getStatusColor(dayModel.status);
+                      Color txtColor = _getTextColor(context, dayModel.status);
 
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: bgColor,
-                        borderRadius: BorderRadius.circular(12.r),
-                        border: bgColor == Colors.transparent
-                            ? Border.all(color: AppColors.cardBorder.withAlpha(128))
-                            : null,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '${dayModel.day}',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: txtColor,
+                      if (index % 7 == 0) {
+                        bgColor = Colors.amber;
+                        txtColor = Colors.white;
+                      }
+
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: bgColor == Colors.transparent
+                              ? Border.all(color: AppColors.cardBorder.withAlpha(128))
+                              : null,
                         ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${dayModel.day}',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: txtColor,
+                          ),
+                        ),
+                      ).animate(delay: (20 * index).ms).fadeIn(duration: 300.ms).scale(curve: Curves.easeOutBack);
+                    },
+                  ),
+                ] else ...[
+                  // Monthly Breakdown List
+                  Text('Monthly Breakdown', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 12.h),
+                  ..._monthlyBreakdown.map((m) {
+                    final mName = DateFormat('MMMM').format(DateTime(2020, m['month']));
+                    final mPct = m['percentage'] as double;
+                    final hasData = m['hasData'] as bool;
+                    return Container(
+                      margin: EdgeInsets.only(bottom: 8.h),
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(color: AppColors.cardBorder.withAlpha(50)),
                       ),
-                    ).animate(delay: (20 * index).ms).fadeIn(duration: 300.ms).scale(curve: Curves.easeOutBack);
-                  },
-                ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(mName, style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                          Text(
+                            hasData ? '${mPct.toStringAsFixed(1)}%' : 'No Data',
+                            style: TextStyle(
+                              fontSize: 16.sp, 
+                              fontWeight: FontWeight.bold,
+                              color: hasData ? (mPct >= 75 ? AppColors.present : (mPct > 0 ? Colors.orange : AppColors.absent)) : Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ).animate().fadeIn().slideX();
+                  }),
+                ],
                 SizedBox(height: 32.h),
 
                 // Attendance Gauge & %
@@ -254,6 +396,15 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
         ),
       ),
     );
+  }
+
+  String _getViewModeLabel(ViewMode mode) {
+    switch (mode) {
+      case ViewMode.monthly: return 'Monthly';
+      case ViewMode.semester1: return 'Sem 1';
+      case ViewMode.semester2: return 'Sem 2';
+      case ViewMode.yearly: return 'Yearly';
+    }
   }
 
   Widget _buildStatBadge(String label, int count, Color color) {
@@ -313,4 +464,5 @@ class _WeekdayHeader extends StatelessWidget {
     );
   }
 }
+
 

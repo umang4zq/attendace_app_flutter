@@ -251,6 +251,71 @@ class FirestoreService {
     };
   }
 
+  // --- Aggregated Attendance (Semester / Year) ---
+
+  Future<Map<String, dynamic>> fetchAggregatedAttendance({
+    required String streamId,
+    required String studentId,
+    required int year,
+    required List<int> months,
+  }) async {
+    int totalPresent = 0;
+    int totalAbsent = 0;
+    int totalHoliday = 0;
+    final List<Map<String, dynamic>> monthlyBreakdown = [];
+
+    for (int month in months) {
+      final monthKey = '$year-${month.toString().padLeft(2, '0')}';
+
+      final daysSnapshot = await _firestore
+          .collection('streams')
+          .doc(streamId)
+          .collection('students')
+          .doc(studentId)
+          .collection('attendance')
+          .doc(monthKey)
+          .collection('days')
+          .get();
+
+      int mPresent = 0;
+      int mAbsent = 0;
+
+      for (var doc in daysSnapshot.docs) {
+        final status = (doc.data()['status'] ?? 'None').toString().toLowerCase();
+        if (status == 'present') {
+          mPresent++;
+        } else if (status == 'absent') {
+          mAbsent++;
+        } else if (status == 'holiday') {
+          totalHoliday++; // Keep track of total holidays
+        }
+      }
+
+      totalPresent += mPresent;
+      totalAbsent += mAbsent;
+
+      final mWorkingDays = mPresent + mAbsent;
+      final mPercentage = mWorkingDays > 0 ? (mPresent / mWorkingDays) * 100 : 0.0;
+
+      monthlyBreakdown.add({
+        'month': month,
+        'percentage': mPercentage,
+        'hasData': daysSnapshot.docs.isNotEmpty,
+      });
+    }
+
+    final totalWorkingDays = totalPresent + totalAbsent;
+    final percentage = totalWorkingDays > 0 ? (totalPresent / totalWorkingDays) * 100 : 0.0;
+
+    return {
+      'presentCount': totalPresent,
+      'absentCount': totalAbsent,
+      'holidayCount': totalHoliday,
+      'percentage': percentage,
+      'monthlyBreakdown': monthlyBreakdown,
+    };
+  }
+
   // --- Report Date-Range Attendance Calculation ---
 
   Future<List<Map<String, dynamic>>> fetchAttendanceReportData({
