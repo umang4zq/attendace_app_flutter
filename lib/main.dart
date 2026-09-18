@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
+import 'providers/attendance_provider.dart';
+import 'providers/admin_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +25,15 @@ void main() async {
     themeNotifier.value = ThemeMode.light;
   }
 
-  runApp(const AttendanceApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+        ChangeNotifierProvider(create: (_) => AdminProvider()),
+      ],
+      child: const AttendanceApp(),
+    ),
+  );
 }
 
 // Global notifier for theme mode
@@ -52,7 +63,7 @@ class AttendanceApp extends StatelessWidget {
             ));
 
             return MaterialApp(
-              title: 'Attendance Pro',
+              title: 'Attendance App',
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,

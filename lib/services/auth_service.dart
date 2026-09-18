@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -68,7 +69,7 @@ class AuthService {
     } catch (e) {
       // Log the error but do not rethrow.
       // If we throw here, the auth flow fails in the UI even though the user was successfully authenticated in Firebase Auth.
-      print('Error ensuring teacher doc exists: $e');
+      debugPrint('Error ensuring teacher doc exists: $e');
     }
   }
 

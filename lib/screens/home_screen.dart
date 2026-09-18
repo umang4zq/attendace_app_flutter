@@ -2,9 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../models/student_model.dart';
-import '../models/stream_model.dart';
-import '../services/firestore_service.dart';
+
+import '../providers/attendance_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/student_card.dart';
 import 'add_student_screen.dart';
@@ -19,17 +20,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _searchController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
-  List<StreamModel> _streams = [];
-  String _selectedStream = 'All';
-
-  List<StudentModel> _allStudents = [];
-  List<StudentModel> _filteredStudents = [];
-  bool _isLoading = true;
-  bool _isSaving = false;
 
   // Floating Action Menu state
   bool _isMenuOpen = false;
@@ -48,89 +41,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       curve: Curves.easeOutBack, // Apple-style spring curve
     );
 
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    try {
-      final streams = await _firestoreService.getStreams();
-      final students = await _firestoreService.fetchAllStudents();
-
-      if (mounted) {
-        setState(() {
-          _streams = streams;
-          _allStudents = students;
-          _filterStudents();
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading data: $e')),
-        );
-      }
-    }
-  }
-
-  void _filterStudents() {
-    final query = _searchController.text.toLowerCase().trim();
-    setState(() {
-      _filteredStudents = _allStudents.where((s) {
-        final matchesStream = _selectedStream == 'All' ||
-            s.stream.toLowerCase() == _selectedStream.toLowerCase() ||
-            s.streamId.toLowerCase() == _selectedStream.toLowerCase();
-
-        final matchesQuery = query.isEmpty ||
-            s.name.toLowerCase().contains(query) ||
-            s.rollno.toLowerCase().contains(query);
-
-        return matchesStream && matchesQuery;
-      }).toList();
-    });
-  }
-
-  void _toggleStudentStatus(int index) {
-    setState(() {
-      final student = _filteredStudents[index];
-      student.selected = false; // clear holiday
-      student.isPresent = !student.isPresent;
-      if (student.isPresent) {
-        student.isAbsent = false;
-      }
-    });
-  }
-
-  void _markStudentPresent(int index) {
-    setState(() {
-      final student = _filteredStudents[index];
-      student.selected = false;
-      student.isPresent = true;
-      student.isAbsent = false;
-    });
-  }
-
-  void _markStudentAbsent(int index) {
-    setState(() {
-      final student = _filteredStudents[index];
-      student.selected = false;
-      student.isPresent = false;
-      student.isAbsent = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AttendanceProvider>().loadData();
     });
   }
 
   void _markHolidayForClass() {
     _toggleFabMenu();
-    setState(() {
-      for (var student in _filteredStudents) {
-        student.selected = true;
-        student.isPresent = false;
-        student.isAbsent = false;
-      }
-    });
-
+    context.read<AttendanceProvider>().markHolidayForClass();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Marked as Holiday for selected students! Click Save to confirm.'),
@@ -141,14 +59,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   void _markAllPresentForClass() {
     _toggleFabMenu();
-    setState(() {
-      for (var student in _filteredStudents) {
-        student.selected = false;
-        student.isPresent = true;
-        student.isAbsent = false;
-      }
-    });
-
+    context.read<AttendanceProvider>().markAllPresentForClass();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Marked all as Present! Click Save to confirm.'),
@@ -159,14 +70,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   void _markAllAbsentForClass() {
     _toggleFabMenu();
-    setState(() {
-      for (var student in _filteredStudents) {
-        student.selected = false;
-        student.isPresent = false;
-        student.isAbsent = true;
-      }
-    });
-
+    context.read<AttendanceProvider>().markAllAbsentForClass();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Marked all as Absent! Click Save to confirm.'),
@@ -176,19 +80,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _saveAttendance() async {
-    if (_filteredStudents.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No students to save attendance for')),
-      );
-      return;
-    }
-
-    setState(() => _isSaving = true);
     try {
-      await _firestoreService.saveAttendance(
-        date: _selectedDate,
-        students: _filteredStudents,
-      );
+      await context.read<AttendanceProvider>().saveAttendance(_selectedDate);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -203,8 +96,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           SnackBar(content: Text('Failed to save attendance: $e')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -266,13 +157,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
 
-    if (confirm == true) {
+    if (confirm == true && mounted) {
       try {
-        await _firestoreService.deleteStudent(
-          student.streamId.isNotEmpty ? student.streamId : student.stream,
-          student.docId,
-        );
-        _loadData();
+        await context.read<AttendanceProvider>().deleteStudent(student);
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -292,6 +179,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<AttendanceProvider>();
     final formattedDate = DateFormat('dd-MMM-yy').format(_selectedDate);
 
     return Scaffold(
@@ -332,20 +220,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         title: Image.asset('assets/images/logo2.png', height: 50.h),
         actions: [
           IconButton(
-            icon: _isSaving
+            icon: provider.isSaving
                 ? SizedBox(
                     width: 20.w,
                     height: 20.h,
                     child: const CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Icon(Icons.save_rounded, color: AppColors.primary, size: 26.sp),
-            onPressed: _isSaving ? null : _saveAttendance,
+            onPressed: provider.isSaving ? null : _saveAttendance,
             tooltip: 'Save Attendance',
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _loadData,
+        onRefresh: provider.loadData,
         color: AppColors.primary,
         child: Column(
           children: [
@@ -367,7 +255,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       alignment: Alignment.center,
                       child: TextField(
                         controller: _searchController,
-                        onChanged: (val) => _filterStudents(),
+                        onChanged: (val) => provider.setSearchQuery(val),
                         textAlignVertical: TextAlignVertical.center,
                         style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
                         decoration: InputDecoration(
@@ -398,19 +286,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       alignment: Alignment.center,
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: _selectedStream,
+                          value: provider.streams.any((s) => s.name == provider.selectedStream) ? provider.selectedStream : (provider.selectedStream == 'All' ? 'All' : null),
                           isExpanded: true,
                           icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
                           style: TextStyle(fontSize: 14.sp, color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w500),
                           dropdownColor: Theme.of(context).cardColor,
                           items: [
                           const DropdownMenuItem(value: 'All', child: Text('All')),
-                          ..._streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))),
+                          ...provider.streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))),
                         ],
                         onChanged: (val) {
                           if (val != null) {
-                            setState(() => _selectedStream = val);
-                            _filterStudents();
+                            provider.setSelectedStream(val);
                           }
                         },
                       ),
@@ -423,14 +310,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
             // Student Roster List
             Expanded(
-              child: _isLoading
+              child: provider.isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _filteredStudents.isEmpty
+                  : provider.filteredStudents.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.people_outline, size: 64.sp, color: AppColors.textMuted.withOpacity(0.5)),
+                              Icon(Icons.people_outline, size: 64.sp, color: AppColors.textMuted.withValues(alpha: 0.5)),
                               SizedBox(height: 12.h),
                               Text(
                                 'No students found',
@@ -443,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     context,
                                     MaterialPageRoute(builder: (context) => const AddStudentScreen()),
                                   );
-                                  _loadData();
+                                  provider.loadData();
                                 },
                                 icon: const Icon(Icons.add),
                                 label: const Text('Add Student'),
@@ -453,18 +340,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         )
                       : ListView.builder(
                           physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
-                          itemCount: _filteredStudents.length,
+                          itemCount: provider.filteredStudents.length,
                           padding: EdgeInsets.only(
                             top: 4.h,
                             bottom: 90.h,
                           ),
                           itemBuilder: (context, index) {
-                            final student = _filteredStudents[index];
+                            final student = provider.filteredStudents[index];
                             return StudentCard(
                               student: student,
-                              onToggleStatus: () => _toggleStudentStatus(index),
-                              onMarkPresent: () => _markStudentPresent(index),
-                              onMarkAbsent: () => _markStudentAbsent(index),
+                              onToggleStatus: () => provider.toggleStudentStatus(index),
+                              onMarkPresent: () => provider.markStudentPresent(index),
+                              onMarkAbsent: () => provider.markStudentAbsent(index),
                               onDelete: () => _deleteStudent(student),
                               onEdit: () async {
                                 await Navigator.push(
@@ -473,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     builder: (context) => UpdateStudentScreen(student: student),
                                   ),
                                 );
-                                _loadData();
+                                provider.loadData();
                               },
                             ).animate(delay: (50 * index).ms)
                              .fadeIn(duration: 400.ms)
@@ -502,7 +389,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(8.r),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
                     ],
                   ),
                   child: Text('Mark All Absent', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
@@ -531,7 +418,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(8.r),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
                     ],
                   ),
                   child: Text('Mark All Present', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),
@@ -560,7 +447,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(8.r),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
                     ],
                   ),
                   child: Text('Holiday', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyLarge?.color)),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../services/firestore_service.dart';
-import '../services/csv_service.dart';
+import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../models/student_model.dart';
-import '../models/stream_model.dart';
+
 import '../theme/app_colors.dart';
 import 'add_student_screen.dart';
+import '../providers/admin_provider.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
@@ -16,33 +16,17 @@ class AdminPanelScreen extends StatefulWidget {
 }
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerProviderStateMixin {
-  final FirestoreService _firestoreService = FirestoreService();
   late TabController _tabController;
-
-  // --- Tab 1: Teachers ---
-  List<Map<String, dynamic>> _teachers = [];
-  bool _isLoadingTeachers = true;
-
-  // --- Tab 2: Data Management ---
-  List<StreamModel> _streams = [];
-  Map<String, List<StudentModel>> _studentsByStream = {};
-  bool _isLoadingData = true;
-  String? _expandedStream;
-
-  // --- Tab 3: CSV ---
-  List<StreamModel> _csvStreams = [];
-  String? _csvSelectedStream;
-  List<Map<String, String>> _csvPreviewRows = [];
-  bool _isImporting = false;
-  bool _isExporting = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadTeachers();
-    _loadData();
-    _loadCsvStreams();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<AdminProvider>();
+      provider.loadTeachers();
+      provider.loadData();
+    });
   }
 
   @override
@@ -51,41 +35,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     super.dispose();
   }
 
-  // ========== Tab 1: Teachers ==========
-
-  Future<void> _loadTeachers() async {
-    setState(() => _isLoadingTeachers = true);
-    try {
-      final teachers = await _firestoreService.getAllTeachers();
-      if (mounted) setState(() { _teachers = teachers; _isLoadingTeachers = false; });
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingTeachers = false);
-    }
-  }
-
-  Future<void> _togglePermission(String uid, String field, bool value) async {
-    // Optimistic UI update
-    setState(() {
-      final index = _teachers.indexWhere((t) => t['uid'] == uid);
-      if (index != -1) _teachers[index][field] = value;
-    });
-
-    try {
-      if (field == 'canAddManually') {
-        await _firestoreService.setTeacherPermissions(uid, canAddManually: value);
-      } else {
-        await _firestoreService.setTeacherPermissions(uid, canImportCsv: value);
-      }
-    } catch (e) {
-      // Revert if it fails
-      _loadTeachers();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
-    }
-  }
-
-  Future<void> _deleteTeacher(String uid, String email) async {
+  Future<void> _deleteTeacher(AdminProvider provider, String uid, String email) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -101,17 +51,10 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         ],
       ),
     );
-    if (confirm == true) {
-      // Optimistic UI update
-      setState(() {
-        _teachers.removeWhere((t) => t['uid'] == uid);
-      });
-
+    if (confirm == true && mounted) {
       try {
-        await _firestoreService.deleteTeacherDoc(uid);
+        await provider.deleteTeacher(uid);
       } catch (e) {
-        // Revert on error
-        _loadTeachers();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
         }
@@ -119,29 +62,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     }
   }
 
-  // ========== Tab 2: Data Management ==========
-
-  Future<void> _loadData() async {
-    setState(() => _isLoadingData = true);
-    try {
-      final streams = await _firestoreService.getStreams();
-      final Map<String, List<StudentModel>> map = {};
-      for (var s in streams) {
-        map[s.name] = await _firestoreService.fetchStudentsByStream(s.name);
-      }
-      if (mounted) {
-        setState(() {
-          _streams = streams;
-          _studentsByStream = map;
-          _isLoadingData = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingData = false);
-    }
-  }
-
-  Future<void> _showAddStreamDialog() async {
+  Future<void> _showAddStreamDialog(AdminProvider provider) async {
     final nameController = TextEditingController();
     final yearController = TextEditingController(text: DateTime.now().year.toString());
     final semesterController = TextEditingController();
@@ -182,11 +103,10 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
             onPressed: () async {
               final sName = nameController.text.trim();
               if (sName.isNotEmpty) {
-                await _firestoreService.addStream(sName, yearController.text, semesterController.text);
-                if (ctx.mounted) {
+                await provider.addStream(sName, yearController.text, semesterController.text);
+                if (ctx.mounted && mounted) {
                   Navigator.of(ctx).pop();
                 }
-                _loadData();
               }
             },
             child: const Text('Save'),
@@ -196,7 +116,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     );
   }
 
-  Future<void> _deleteStreamAdmin(String streamId) async {
+  Future<void> _deleteStreamAdmin(AdminProvider provider, String streamId) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -212,20 +132,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         ],
       ),
     );
-    if (confirm == true) {
-      // Optimistic UI update
-      setState(() {
-        _streams.removeWhere((s) => s.name == streamId);
-        _studentsByStream.remove(streamId);
-      });
-
+    if (confirm == true && mounted) {
       try {
-        await _firestoreService.deleteStream(streamId);
+        await provider.deleteStreamAdmin(streamId);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Stream deleted.')));
         }
       } catch (e) {
-        _loadData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
         }
@@ -233,7 +146,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     }
   }
 
-  Future<void> _deleteStudentAdmin(StudentModel student) async {
+  Future<void> _deleteStudentAdmin(AdminProvider provider, StudentModel student) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -249,17 +162,10 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
         ],
       ),
     );
-    if (confirm == true) {
-      final streamName = student.streamId.isNotEmpty ? student.streamId : student.stream;
-      // Optimistic UI update
-      setState(() {
-        _studentsByStream[streamName]?.removeWhere((s) => s.docId == student.docId);
-      });
-
+    if (confirm == true && mounted) {
       try {
-        await _firestoreService.deleteStudent(streamName, student.docId);
+        await provider.deleteStudentAdmin(student);
       } catch (e) {
-        _loadData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
         }
@@ -267,7 +173,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     }
   }
 
-  Future<void> _showPromoteStreamDialog(String oldStreamId) async {
+  Future<void> _showPromoteStreamDialog(AdminProvider provider, String oldStreamId) async {
     final nameController = TextEditingController(text: oldStreamId);
     final yearController = TextEditingController(text: DateTime.now().year.toString());
     final semesterController = TextEditingController();
@@ -317,18 +223,17 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                 );
 
                 try {
-                  final count = await _firestoreService.promoteStream(oldStreamId, newStreamName, yearController.text, semesterController.text);
+                  final count = await provider.promoteStream(oldStreamId, newStreamName, yearController.text, semesterController.text);
                   
-                  if (ctx.mounted) {
+                  if (ctx.mounted && mounted) {
                     Navigator.pop(ctx); // pop loading
                     Navigator.pop(ctx); // pop promote dialog
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Successfully promoted $count students to $newStreamName!'), backgroundColor: AppColors.present),
                     );
-                    _loadData();
                   }
                 } catch (e) {
-                  if (ctx.mounted) {
+                  if (ctx.mounted && mounted) {
                     Navigator.pop(ctx); // pop loading
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Error: $e')),
@@ -344,92 +249,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     );
   }
 
-  // ========== Tab 3: CSV ==========
-
-  Future<void> _loadCsvStreams() async {
-    final streams = await _firestoreService.getStreams();
-    if (mounted) {
-      setState(() {
-        _csvStreams = streams;
-        if (streams.isNotEmpty && _csvSelectedStream == null) {
-          _csvSelectedStream = streams.first.name;
-        }
-      });
-    }
-  }
-
-  Future<void> _pickCsvFile() async {
-    try {
-      final csvContent = await CsvService.pickAndReadCsvFile();
-      if (csvContent == null) return;
-
-      final rows = CsvService.parseCsv(csvContent);
-      if (mounted) {
-        setState(() => _csvPreviewRows = rows);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('CSV Error: $e')));
-      }
-    }
-  }
-
-  Future<void> _importCsvStudents() async {
-    if (_csvSelectedStream == null || _csvPreviewRows.isEmpty) return;
-
-    setState(() => _isImporting = true);
-    try {
-      final count = await _firestoreService.addStudentsBatch(_csvSelectedStream!, _csvPreviewRows);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$count students imported to $_csvSelectedStream!'), backgroundColor: AppColors.present),
-        );
-        setState(() => _csvPreviewRows = []);
-        _loadData();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isImporting = false);
-    }
-  }
-
-  Future<void> _exportCsv() async {
-    if (_csvSelectedStream == null) return;
-
-    setState(() => _isExporting = true);
-    try {
-      final students = await _firestoreService.fetchStudentsByStream(_csvSelectedStream!);
-      if (students.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No students found in this stream.')),
-          );
-        }
-        return;
-      }
-      final csv = CsvService.generateCsv(students);
-      await CsvService.shareCsvFile(csv, 'students_$_csvSelectedStream.csv');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
-  }
-
-  // ========== BUILD ==========
-
   void _showCsvInstructions() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.info_outline, color: AppColors.primary),
+            const Icon(Icons.info_outline, color: AppColors.primary),
             SizedBox(width: 8.w),
             const Expanded(child: Text('CSV Import Guide')),
           ],
@@ -460,6 +286,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<AdminProvider>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? AppColors.cardDark : Colors.white;
     final borderColor = isDark ? AppColors.cardBorderDark : AppColors.cardBorder;
@@ -490,20 +317,18 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildTeachersTab(cardBg, borderColor),
-          _buildDataTab(cardBg, borderColor),
-          _buildCsvTab(cardBg, borderColor),
+          _buildTeachersTab(provider, cardBg, borderColor),
+          _buildDataTab(provider, cardBg, borderColor),
+          _buildCsvTab(provider, cardBg, borderColor),
         ],
       ),
     );
   }
 
-  // ---------- Tab 1: Teachers ----------
+  Widget _buildTeachersTab(AdminProvider provider, Color cardBg, Color borderColor) {
+    if (provider.isLoadingTeachers) return const Center(child: CircularProgressIndicator());
 
-  Widget _buildTeachersTab(Color cardBg, Color borderColor) {
-    if (_isLoadingTeachers) return const Center(child: CircularProgressIndicator());
-
-    if (_teachers.isEmpty) {
+    if (provider.teachers.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -517,12 +342,12 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     }
 
     return RefreshIndicator(
-      onRefresh: _loadTeachers,
+      onRefresh: provider.loadTeachers,
       child: ListView.builder(
         padding: EdgeInsets.all(16.w),
-        itemCount: _teachers.length,
+        itemCount: provider.teachers.length,
         itemBuilder: (context, index) {
-          final t = _teachers[index];
+          final t = provider.teachers[index];
           final uid = t['uid'] as String;
           final email = (t['email'] ?? '').toString();
           final canAdd = t['canAddManually'] is bool ? t['canAddManually'] as bool : true;
@@ -561,7 +386,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     if (!isSuperAdmin)
                       IconButton(
                         icon: Icon(Icons.delete_outline, color: AppColors.deleteRed, size: 22.sp),
-                        onPressed: () => _deleteTeacher(uid, email),
+                        onPressed: () => _deleteTeacher(provider, uid, email),
                       ),
                   ],
                 ),
@@ -570,13 +395,25 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                   Row(
                     children: [
                       Expanded(child: Text('Can Add Manually', style: TextStyle(fontSize: 13.sp))),
-                      Switch(value: canAdd, onChanged: (v) => _togglePermission(uid, 'canAddManually', v), activeThumbColor: AppColors.primary),
+                      Switch(value: canAdd, onChanged: (v) async {
+                        try {
+                          await provider.togglePermission(uid, 'canAddManually', v);
+                        } catch (e) {
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
+                      }, activeThumbColor: AppColors.primary),
                     ],
                   ),
                   Row(
                     children: [
                       Expanded(child: Text('Can Import CSV', style: TextStyle(fontSize: 13.sp))),
-                      Switch(value: canCsv, onChanged: (v) => _togglePermission(uid, 'canImportCsv', v), activeThumbColor: AppColors.primary),
+                      Switch(value: canCsv, onChanged: (v) async {
+                        try {
+                          await provider.togglePermission(uid, 'canImportCsv', v);
+                        } catch (e) {
+                          if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                        }
+                      }, activeThumbColor: AppColors.primary),
                     ],
                   ),
                 ],
@@ -588,15 +425,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     );
   }
 
-  // ---------- Tab 2: Data Management ----------
+  Widget _buildDataTab(AdminProvider provider, Color cardBg, Color borderColor) {
+    if (provider.isLoadingData) return const Center(child: CircularProgressIndicator());
 
-  Widget _buildDataTab(Color cardBg, Color borderColor) {
-    if (_isLoadingData) return const Center(child: CircularProgressIndicator());
-
-    if (_streams.isEmpty) {
+    if (provider.streams.isEmpty) {
       return Column(
         children: [
-          _buildAdminActionButtons(),
+          _buildAdminActionButtons(provider),
           Expanded(
             child: Center(
               child: Column(
@@ -614,18 +449,18 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     }
 
     return RefreshIndicator(
-      onRefresh: _loadData,
+      onRefresh: provider.loadData,
       child: Column(
         children: [
-          _buildAdminActionButtons(),
+          _buildAdminActionButtons(provider),
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              itemCount: _streams.length,
+              itemCount: provider.streams.length,
               itemBuilder: (context, index) {
-                final stream = _streams[index];
-                final students = _studentsByStream[stream.name] ?? [];
-                final isExpanded = _expandedStream == stream.name;
+                final stream = provider.streams[index];
+                final students = provider.studentsByStream[stream.name] ?? [];
+                final isExpanded = provider.expandedStream == stream.name;
 
                 return Container(
                   margin: EdgeInsets.only(bottom: 12.h),
@@ -638,7 +473,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     children: [
                       // Stream header
                       ListTile(
-                        onTap: () => setState(() => _expandedStream = isExpanded ? null : stream.name),
+                        onTap: () => provider.toggleExpandedStream(stream.name),
                         title: Text('${stream.name}${stream.semester != null && stream.semester!.isNotEmpty ? ' (Sem ${stream.semester})' : ''}', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
                         subtitle: Text('${students.length} students', style: TextStyle(fontSize: 13.sp)),
                         trailing: Row(
@@ -647,12 +482,12 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                             IconButton(
                               icon: Icon(Icons.upgrade, color: AppColors.primary, size: 22.sp),
                               tooltip: 'Promote Batch',
-                              onPressed: () => _showPromoteStreamDialog(stream.name),
+                              onPressed: () => _showPromoteStreamDialog(provider, stream.name),
                             ),
                             IconButton(
                               icon: Icon(Icons.delete_forever, color: AppColors.deleteRed, size: 22.sp),
                               tooltip: 'Delete Stream',
-                              onPressed: () => _deleteStreamAdmin(stream.name),
+                              onPressed: () => _deleteStreamAdmin(provider, stream.name),
                             ),
                             Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 24.sp),
                           ],
@@ -671,7 +506,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                           subtitle: Text('Roll: ${s.rollno}', style: TextStyle(fontSize: 12.sp)),
                           trailing: IconButton(
                             icon: Icon(Icons.remove_circle_outline, color: AppColors.deleteRed, size: 20.sp),
-                            onPressed: () => _deleteStudentAdmin(s),
+                            onPressed: () => _deleteStudentAdmin(provider, s),
                           ),
                         )),
                     ],
@@ -685,14 +520,14 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildAdminActionButtons() {
+  Widget _buildAdminActionButtons(AdminProvider provider) {
     return Padding(
       padding: EdgeInsets.all(16.w),
       child: Row(
         children: [
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: _showAddStreamDialog,
+              onPressed: () => _showAddStreamDialog(provider),
               icon: const Icon(Icons.class_),
               label: const Text('Add Class'),
               style: ElevatedButton.styleFrom(
@@ -709,7 +544,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                   context,
                   MaterialPageRoute(builder: (context) => const AddStudentScreen()),
                 );
-                _loadData();
+                provider.loadData();
               },
               icon: const Icon(Icons.person_add),
               label: const Text('Add Student'),
@@ -724,9 +559,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
     );
   }
 
-  // ---------- Tab 3: CSV ----------
-
-  Widget _buildCsvTab(Color cardBg, Color borderColor) {
+  Widget _buildCsvTab(AdminProvider provider, Color cardBg, Color borderColor) {
     return SingleChildScrollView(
       padding: EdgeInsets.all(16.w),
       child: Column(
@@ -744,11 +577,11 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: _csvStreams.any((s) => s.name == _csvSelectedStream) ? _csvSelectedStream : null,
+                value: provider.csvStreams.any((s) => s.name == provider.csvSelectedStream) ? provider.csvSelectedStream : null,
                 hint: const Text('Select Stream'),
                 isExpanded: true,
-                items: _csvStreams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
-                onChanged: (val) => setState(() => _csvSelectedStream = val),
+                items: provider.csvStreams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
+                onChanged: provider.setCsvSelectedStream,
               ),
             ),
           ),
@@ -758,8 +591,14 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           Text('Export Students', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
           SizedBox(height: 8.h),
           ElevatedButton.icon(
-            onPressed: _isExporting ? null : _exportCsv,
-            icon: _isExporting
+            onPressed: provider.isExporting ? null : () async {
+              try {
+                await provider.exportCsv();
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+              }
+            },
+            icon: provider.isExporting
                 ? SizedBox(width: 18.w, height: 18.h, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                 : const Icon(Icons.download),
             label: const Text('Export CSV'),
@@ -778,7 +617,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           SizedBox(height: 12.h),
 
           OutlinedButton.icon(
-            onPressed: _pickCsvFile,
+            onPressed: () async {
+              try {
+                await provider.pickCsvFile();
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('CSV Error: $e')));
+              }
+            },
             icon: const Icon(Icons.file_upload_outlined),
             label: const Text('Pick CSV File'),
             style: OutlinedButton.styleFrom(
@@ -789,8 +634,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           SizedBox(height: 16.h),
 
           // Preview
-          if (_csvPreviewRows.isNotEmpty) ...[
-            Text('Preview (${_csvPreviewRows.length} rows)', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
+          if (provider.csvPreviewRows.isNotEmpty) ...[
+            Text('Preview (${provider.csvPreviewRows.length} rows)', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.bold)),
             SizedBox(height: 8.h),
             Container(
               height: 200.h,
@@ -800,30 +645,45 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                 border: Border.all(color: borderColor),
               ),
               child: ListView.separated(
-                padding: EdgeInsets.all(8.w),
-                itemCount: _csvPreviewRows.length,
-                separatorBuilder: (_, __) => Divider(height: 1.h),
+                padding: EdgeInsets.zero,
+                itemCount: provider.csvPreviewRows.length,
+                separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
                 itemBuilder: (context, index) {
-                  final row = _csvPreviewRows[index];
+                  final row = provider.csvPreviewRows[index];
                   return ListTile(
                     dense: true,
-                    title: Text(row['name'] ?? '', style: TextStyle(fontSize: 14.sp)),
-                    trailing: Text(row['rollno'] ?? '', style: TextStyle(fontSize: 13.sp, color: AppColors.textMuted)),
+                    title: Text(row['name'] ?? 'Unknown', style: TextStyle(fontSize: 13.sp, fontWeight: FontWeight.bold)),
+                    subtitle: Text('Roll: ${row['rollno'] ?? '-'} | Stream: ${row['stream'] ?? provider.csvSelectedStream ?? '-'}', style: TextStyle(fontSize: 12.sp)),
                   );
                 },
               ),
             ),
             SizedBox(height: 16.h),
             ElevatedButton.icon(
-              onPressed: _isImporting ? null : _importCsvStudents,
-              icon: _isImporting
+              onPressed: provider.isImporting ? null : () async {
+                try {
+                  final count = await provider.importCsvStudents();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('$count students imported to ${provider.csvSelectedStream}!'), backgroundColor: AppColors.present),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+                }
+              },
+              icon: provider.isImporting
                   ? SizedBox(width: 18.w, height: 18.h, child: const CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Icon(Icons.cloud_upload),
-              label: Text('Import ${_csvPreviewRows.length} Students to $_csvSelectedStream'),
+                  : const Icon(Icons.save),
+              label: Text(provider.isImporting ? 'Importing...' : 'Confirm & Import'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: EdgeInsets.symmetric(vertical: 14.h),
               ),
+            ),
+            TextButton(
+              onPressed: provider.clearCsvPreviewRows,
+              child: const Text('Cancel'),
             ),
           ],
         ],

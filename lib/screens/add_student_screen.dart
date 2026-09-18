@@ -151,7 +151,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.info_outline, color: AppColors.primary),
+            const Icon(Icons.info_outline, color: AppColors.primary),
             SizedBox(width: 8.w),
             const Expanded(child: Text('CSV Import Guide')),
           ],

@@ -130,7 +130,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
               SizedBox(height: 8.h),
               Text(
                 'Roll No: ${widget.student.rollno} | ${widget.student.stream}${widget.student.semester.isNotEmpty ? ' (Sem ${widget.student.semester})' : ''}',
-                style: TextStyle(fontSize: 16.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+                style: TextStyle(fontSize: 16.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
                 textAlign: TextAlign.center,
               ).animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad),
               SizedBox(height: 32.h),
@@ -286,7 +286,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
         SizedBox(height: 8.h),
         Text(
           label,
-          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
+          style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
         ),
       ],
     );
@@ -295,8 +295,7 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
 
 class _WeekdayHeader extends StatelessWidget {
   final String text;
-  final Color? color;
-  const _WeekdayHeader(this.text, {this.color});
+  const _WeekdayHeader(this.text);
 
   @override
   Widget build(BuildContext context) {
@@ -308,9 +307,10 @@ class _WeekdayHeader extends StatelessWidget {
         style: TextStyle(
           fontSize: 14.sp,
           fontWeight: FontWeight.bold,
-          color: color ?? Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
+          color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
         ),
       ),
     );
   }
 }
+

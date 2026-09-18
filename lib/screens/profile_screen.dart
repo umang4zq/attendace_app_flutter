@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_colors.dart';
 import 'login_screen.dart';
 import 'add_student_screen.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -29,11 +30,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool _isLoading = true;
   bool _isGeneratingPdf = false;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
     _loadStreams();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = 'v${packageInfo.version}';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading version: $e');
+    }
   }
 
   Future<void> _loadStreams() async {
@@ -407,6 +423,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: Text('LOGOUT', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
               ),
+              if (_appVersion.isNotEmpty) ...[
+                SizedBox(height: 24.h),
+                Center(
+                  child: Text(
+                    'Version $_appVersion',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      color: subTextColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

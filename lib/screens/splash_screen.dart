@@ -65,47 +65,71 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/images/logo.png',
-                width: 140.w,
-                height: 140.h,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: 120.w,
-                  height: 120.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(28.r),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/logo.png',
+                      width: 140.w,
+                      height: 140.h,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 120.w,
+                        height: 120.h,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(28.r),
+                        ),
+                        child: Icon(Icons.fact_check_rounded, size: 64.sp, color: Colors.white),
+                      ),
+                    ),
+                    SizedBox(height: 24.h),
+                    Text(
+                      'Attendance App',
+                      style: TextStyle(
+                        fontSize: 26.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'Smart Student & Class Tracker',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(153),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 24.h,
+              left: 0,
+              right: 0,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: Text(
+                  'Developed By Umang Markana',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(153),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
                   ),
-                  child: Icon(Icons.fact_check_rounded, size: 64.sp, color: Colors.white),
                 ),
               ),
-              SizedBox(height: 24.h),
-              Text(
-                'Attendance App',
-                style: TextStyle(
-                  fontSize: 26.sp,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                'Smart Student & Class Tracker',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withAlpha(153),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
