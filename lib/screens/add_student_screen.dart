@@ -96,8 +96,8 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
       if (mounted) {
         setState(() {
           _streams = streams;
-          if (streams.isNotEmpty && (_selectedStream == null || !_streams.any((s) => s.name == _selectedStream))) {
-            _selectedStream = streams.first.name;
+          if (streams.isNotEmpty && (_selectedStream == null || !_streams.any((s) => s.id == _selectedStream))) {
+            _selectedStream = streams.first.id;
           }
           _isLoadingStreams = false;
         });
@@ -107,6 +107,13 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     }
   }
 
+  String _formatStreamName(StreamModel s) {
+    String year = '';
+    if (s.semester == '1' || s.semester == '2') year = ' 1YR';
+    else if (s.semester == '3' || s.semester == '4') year = ' 2YR';
+    else if (s.semester == '5' || s.semester == '6') year = ' 3RD YR';
+    return year.isNotEmpty ? '${s.name}$year' : s.name;
+  }
 
   Future<void> _handleSaveStudent() async {
     if (!_formKey.currentState!.validate()) return;
@@ -264,10 +271,10 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
-                                value: _streams.any((s) => s.name == _selectedStream) ? _selectedStream : null,
+                                value: _streams.any((s) => s.id == _selectedStream) ? _selectedStream : null,
                                 hint: const Text('Select Stream'),
                                 isExpanded: true,
-                                items: _streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
+                                items: _streams.map((s) => DropdownMenuItem(value: s.id, child: Text(_formatStreamName(s)))).toList(),
                                 onChanged: (val) => setState(() => _selectedStream = val),
                               ),
                             ),

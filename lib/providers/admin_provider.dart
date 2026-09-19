@@ -86,11 +86,11 @@ class AdminProvider extends ChangeNotifier {
       _streams = await _firestoreService.getStreams();
       _studentsByStream = {};
       for (var s in _streams) {
-        _studentsByStream[s.name] = await _firestoreService.fetchStudentsByStream(s.name);
+        _studentsByStream[s.id] = await _firestoreService.fetchStudentsByStream(s.id);
       }
       _csvStreams = _streams;
       if (_csvStreams.isNotEmpty && _csvSelectedStream == null) {
-        _csvSelectedStream = _csvStreams.first.name;
+        _csvSelectedStream = _csvStreams.first.id;
       }
     } catch (e) {
       debugPrint('Error loading data: $e');
@@ -111,7 +111,7 @@ class AdminProvider extends ChangeNotifier {
   }
 
   Future<void> deleteStreamAdmin(String streamId) async {
-    _streams.removeWhere((s) => s.name == streamId);
+    _streams.removeWhere((s) => s.id == streamId);
     _studentsByStream.remove(streamId);
     notifyListeners();
 

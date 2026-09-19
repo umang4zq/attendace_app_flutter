@@ -234,11 +234,24 @@ class _MonthlyCalendarScreenState extends State<MonthlyCalendarScreen> {
                 textAlign: TextAlign.center,
               ).animate().fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad),
               SizedBox(height: 8.h),
-              Text(
-                'Roll No: ${widget.student.rollno} | ${widget.student.stream}${widget.student.semester.isNotEmpty ? ' (Sem ${widget.student.semester})' : ''}',
-                style: TextStyle(fontSize: 16.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
-                textAlign: TextAlign.center,
-              ).animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad),
+              Builder(
+                builder: (context) {
+                  String yearText = '';
+                  if (widget.student.semester == '1' || widget.student.semester == '2') {
+                    yearText = ' - 1YR';
+                  } else if (widget.student.semester == '3' || widget.student.semester == '4') {
+                    yearText = ' - 2YR';
+                  } else if (widget.student.semester == '5' || widget.student.semester == '6') {
+                    yearText = ' - 3RD YR';
+                  }
+                  
+                  return Text(
+                    'Roll No: ${widget.student.rollno} | ${widget.student.stream}${widget.student.semester.isNotEmpty ? ' (Sem ${widget.student.semester}$yearText)' : ''}',
+                    style: TextStyle(fontSize: 16.sp, color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.7)),
+                    textAlign: TextAlign.center,
+                  ).animate(delay: 100.ms).fadeIn(duration: 400.ms).slideY(begin: -0.2, end: 0, curve: Curves.easeOutQuad);
+                }
+              ),
               SizedBox(height: 24.h),
 
 

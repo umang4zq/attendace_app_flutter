@@ -60,6 +60,15 @@ class _StudentCardState extends State<StudentCard> {
 
     final isColored = widget.student.selected || widget.student.isPresent || widget.student.isAbsent;
 
+    String yearText = '';
+    if (widget.student.semester == '1' || widget.student.semester == '2') {
+      yearText = ' - 1YR';
+    } else if (widget.student.semester == '3' || widget.student.semester == '4') {
+      yearText = ' - 2YR';
+    } else if (widget.student.semester == '5' || widget.student.semester == '6') {
+      yearText = ' - 3YR';
+    }
+
     return Dismissible(
       key: Key(widget.student.docId.isNotEmpty ? widget.student.docId : widget.student.rollno),
       direction: DismissDirection.horizontal,
@@ -154,7 +163,7 @@ class _StudentCardState extends State<StudentCard> {
                         ),
                         SizedBox(height: 4.h),
                         Text(
-                          '${widget.student.stream}${widget.student.semester.isNotEmpty ? ' (Sem ${widget.student.semester})' : ''}',
+                          '${widget.student.stream}${widget.student.semester.isNotEmpty ? ' (Sem ${widget.student.semester}$yearText)' : ''}',
                           style: TextStyle(
                             fontSize: 13.sp,
                             fontWeight: FontWeight.w600,

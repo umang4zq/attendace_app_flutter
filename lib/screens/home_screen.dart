@@ -286,15 +286,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       alignment: Alignment.center,
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: provider.streams.any((s) => s.name == provider.selectedStream) ? provider.selectedStream : (provider.selectedStream == 'All' ? 'All' : null),
+                          value: provider.filterOptions.contains(provider.selectedStream) ? provider.selectedStream : (provider.selectedStream == 'All' ? 'All' : null),
                           isExpanded: true,
                           icon: const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
                           style: TextStyle(fontSize: 14.sp, color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w500),
                           dropdownColor: Theme.of(context).cardColor,
-                          items: [
-                          const DropdownMenuItem(value: 'All', child: Text('All')),
-                          ...provider.streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))),
-                        ],
+                          items: provider.filterOptions.map((option) => DropdownMenuItem(value: option, child: Text(option))).toList(),
                         onChanged: (val) {
                           if (val != null) {
                             provider.setSelectedStream(val);

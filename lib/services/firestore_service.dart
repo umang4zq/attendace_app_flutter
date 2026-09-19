@@ -20,7 +20,18 @@ class FirestoreService {
     final cleanName = streamName.trim();
     if (cleanName.isEmpty) return;
 
-    await _firestore.collection('streams').doc(cleanName).set({
+    String docId = cleanName;
+    if (year.trim().isNotEmpty) docId += '_${year.trim()}';
+    if (semester.trim().isNotEmpty) docId += '_Sem${semester.trim()}';
+
+    final docRef = _firestore.collection('streams').doc(docId);
+    final docSnap = await docRef.get();
+    
+    if (docSnap.exists) {
+      throw Exception('A class with the name "$cleanName" for year "$year" and semester "$semester" already exists!');
+    }
+
+    await docRef.set({
       'name': cleanName,
       'year': year.trim(),
       'semester': semester.trim(),
@@ -91,22 +102,25 @@ class FirestoreService {
     }).toList();
   }
 
-  Future<void> addStudent(String stream, String name, String rollNo) async {
-    final cleanStream = stream.trim();
+  Future<void> addStudent(String streamId, String name, String rollNo) async {
+    final cleanStreamId = streamId.trim();
     final cleanName = name.trim();
     final cleanRoll = rollNo.trim();
 
     final docId = cleanRoll.isNotEmpty ? cleanRoll : cleanName;
 
+    final streamDoc = await _firestore.collection('streams').doc(cleanStreamId).get();
+    final streamName = streamDoc.data()?['name']?.toString() ?? cleanStreamId;
+
     await _firestore
         .collection('streams')
-        .doc(cleanStream)
+        .doc(cleanStreamId)
         .collection('students')
         .doc(docId)
         .set({
       'name': cleanName,
       'rollno': cleanRoll,
-      'stream': cleanStream,
+      'stream': streamName,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -478,6 +492,11 @@ class FirestoreService {
     // Create the new stream document
     await addStream(cleanNewStreamName, newStreamYear, newStreamSemester);
 
+    // Compute the new document ID for adding students
+    String newDocId = cleanNewStreamName;
+    if (newStreamYear.trim().isNotEmpty) newDocId += '_${newStreamYear.trim()}';
+    if (newStreamSemester.trim().isNotEmpty) newDocId += '_Sem${newStreamSemester.trim()}';
+
     final batch = _firestore.batch();
     int count = 0;
 
@@ -485,7 +504,7 @@ class FirestoreService {
       final docId = student.rollno.isNotEmpty ? student.rollno : student.name;
       final ref = _firestore
           .collection('streams')
-          .doc(cleanNewStreamName)
+          .doc(newDocId)
           .collection('students')
           .doc(docId);
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
@@ -77,6 +78,15 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
             children: [
               TextField(
                 controller: nameController,
+                textCapitalization: TextCapitalization.characters,
+                inputFormatters: [
+                  TextInputFormatter.withFunction((oldValue, newValue) {
+                    return TextEditingValue(
+                      text: newValue.text.toUpperCase(),
+                      selection: newValue.selection,
+                    );
+                  }),
+                ],
                 decoration: const InputDecoration(labelText: 'Stream Name (e.g. BCA2024)'),
               ),
               SizedBox(height: 12.h),
@@ -103,9 +113,20 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
             onPressed: () async {
               final sName = nameController.text.trim();
               if (sName.isNotEmpty) {
-                await provider.addStream(sName, yearController.text, semesterController.text);
-                if (ctx.mounted && mounted) {
-                  Navigator.of(ctx).pop();
+                try {
+                  await provider.addStream(sName, yearController.text, semesterController.text);
+                  if (ctx.mounted && mounted) {
+                    Navigator.of(ctx).pop();
+                  }
+                } catch (e) {
+                  if (ctx.mounted && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(e.toString().replaceAll('Exception: ', '')),
+                        backgroundColor: AppColors.deleteRed,
+                      ),
+                    );
+                  }
                 }
               }
             },
@@ -473,7 +494,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                     children: [
                       // Stream header
                       ListTile(
-                        onTap: () => provider.toggleExpandedStream(stream.name),
+                        onTap: () => provider.toggleExpandedStream(stream.id),
                         title: Text('${stream.name}${stream.semester != null && stream.semester!.isNotEmpty ? ' (Sem ${stream.semester})' : ''}', style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold)),
                         subtitle: Text('${students.length} students', style: TextStyle(fontSize: 13.sp)),
                         trailing: Row(
@@ -482,12 +503,12 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
                             IconButton(
                               icon: Icon(Icons.upgrade, color: AppColors.primary, size: 22.sp),
                               tooltip: 'Promote Batch',
-                              onPressed: () => _showPromoteStreamDialog(provider, stream.name),
+                              onPressed: () => _showPromoteStreamDialog(provider, stream.id),
                             ),
                             IconButton(
                               icon: Icon(Icons.delete_forever, color: AppColors.deleteRed, size: 22.sp),
                               tooltip: 'Delete Stream',
-                              onPressed: () => _deleteStreamAdmin(provider, stream.name),
+                              onPressed: () => _deleteStreamAdmin(provider, stream.id),
                             ),
                             Icon(isExpanded ? Icons.expand_less : Icons.expand_more, size: 24.sp),
                           ],
@@ -577,10 +598,10 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: provider.csvStreams.any((s) => s.name == provider.csvSelectedStream) ? provider.csvSelectedStream : null,
+                value: provider.csvStreams.any((s) => s.id == provider.csvSelectedStream) ? provider.csvSelectedStream : null,
                 hint: const Text('Select Stream'),
                 isExpanded: true,
-                items: provider.csvStreams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
+                items: provider.csvStreams.map((s) => DropdownMenuItem(value: s.id, child: Text('${s.name}${s.semester != null && s.semester!.isNotEmpty ? ' (Sem ${s.semester})' : ''}'))).toList(),
                 onChanged: provider.setCsvSelectedStream,
               ),
             ),

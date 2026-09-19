@@ -60,7 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _streams = streams;
           if (streams.isNotEmpty) {
-            _selectedStream = streams.first.name;
+            _selectedStream = streams.first.id;
           }
           _isLoading = false;
         });
@@ -68,6 +68,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  String _formatStreamName(StreamModel s) {
+    String year = '';
+    if (s.semester == '1' || s.semester == '2') year = ' 1YR';
+    else if (s.semester == '3' || s.semester == '4') year = ' 2YR';
+    else if (s.semester == '5' || s.semester == '6') year = ' 3RD YR';
+    return year.isNotEmpty ? '${s.name}$year' : s.name;
   }
 
   Future<void> _pickMonth({required bool isFrom}) async {
@@ -287,12 +295,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: _streams.any((s) => s.name == _selectedStream) ? _selectedStream : null,
+                          value: _streams.any((s) => s.id == _selectedStream) ? _selectedStream : null,
                           hint: Text('Select Stream', style: TextStyle(color: subTextColor)),
                           isExpanded: true,
                           dropdownColor: cardBgColor,
                           style: TextStyle(color: textColor, fontSize: 16.sp),
-                          items: _streams.map((s) => s.name).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
+                          items: _streams.map((s) => DropdownMenuItem(value: s.id, child: Text(_formatStreamName(s)))).toList(),
                           onChanged: (val) => setState(() => _selectedStream = val),
                         ),
                       ),
