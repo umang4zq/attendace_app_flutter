@@ -480,8 +480,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
               itemCount: provider.streams.length,
               itemBuilder: (context, index) {
                 final stream = provider.streams[index];
-                final students = provider.studentsByStream[stream.name] ?? [];
-                final isExpanded = provider.expandedStream == stream.name;
+                final students = provider.studentsByStream[stream.id] ?? [];
+                final isExpanded = provider.expandedStream == stream.id;
 
                 return Container(
                   margin: EdgeInsets.only(bottom: 12.h),

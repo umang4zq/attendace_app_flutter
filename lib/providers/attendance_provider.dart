@@ -152,6 +152,11 @@ class AttendanceProvider extends ChangeNotifier {
 
   Future<void> saveAttendance(DateTime date) async {
     if (_filteredStudents.isEmpty) throw Exception('No students to save attendance for');
+    
+    final hasMarkedStudents = _filteredStudents.any((s) => s.isPresent || s.isAbsent || s.selected);
+    if (!hasMarkedStudents) {
+      throw Exception('Please mark attendance for at least one student before saving.');
+    }
 
     _isSaving = true;
     notifyListeners();
