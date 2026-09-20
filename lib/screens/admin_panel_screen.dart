@@ -373,7 +373,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with SingleTickerPr
           final email = (t['email'] ?? '').toString();
           final canAdd = t['canAddManually'] is bool ? t['canAddManually'] as bool : true;
           final canCsv = t['canImportCsv'] is bool ? t['canImportCsv'] as bool : false;
-          final isSuperAdmin = email.toLowerCase() == AuthService.superAdminEmail;
+          final isSuperAdmin = AuthService.superAdminEmails.contains(email.toLowerCase());
 
           return Container(
             margin: EdgeInsets.only(bottom: 12.h),

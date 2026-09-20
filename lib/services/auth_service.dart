@@ -6,7 +6,10 @@ class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  static const String superAdminEmail = 'markanaumang@gmail.com';
+  static const List<String> superAdminEmails = [
+    'markanaumang@gmail.com',
+    'gauravnimavat1993@gmail.com',
+  ];
 
   // Stream of auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -16,7 +19,8 @@ class AuthService {
 
   // Check if the currently logged-in user is the super admin
   bool get isSuperAdmin {
-    return currentUser?.email?.toLowerCase() == superAdminEmail;
+    final email = currentUser?.email?.toLowerCase();
+    return email != null && superAdminEmails.contains(email);
   }
 
   // Sign In with Email & Password
@@ -58,7 +62,7 @@ class AuthService {
       final doc = await docRef.get();
 
       if (!doc.exists) {
-        final isAdmin = user.email?.toLowerCase() == superAdminEmail;
+        final isAdmin = user.email != null && superAdminEmails.contains(user.email!.toLowerCase());
         await docRef.set({
           'email': user.email ?? '',
           'canAddManually': true,

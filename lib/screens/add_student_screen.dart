@@ -41,7 +41,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     if (user == null) return;
 
     // Super admin gets all permissions
-    if (user.email?.toLowerCase() == AuthService.superAdminEmail) {
+    if (user.email != null && AuthService.superAdminEmails.contains(user.email!.toLowerCase())) {
       setState(() { _canAddManually = true; _canImportCsv = true; });
       return;
     }
